@@ -11,12 +11,12 @@ This repository contains all source files of CORP, which is written in Python, a
 
 - The Python source files, such as `corp.py` are found in the same folder as this README.
 - `examples` contains two example problems.
-- `notebooks` contains `stepbystep.ipynb`, a Python notebook that runs the main algorithm step-by-step and utilizes Spot's excellent visualization to illustrate the intermediate results, and `visualize.ipynb`, a notebook for simply visualizing automata.
+- `notebooks` contains `stepbystep.ipynb`, a Python notebook that runs the main algorithm step-by-step and utilizes Spot's excellent visualization to illustrate the intermediate results, and `visualize.ipynb`, a notebook for simply visualizing automata, e.g., the ones computed form the main script.
 
 
 ## Dependencies
 
-CORP consists of Python scripts that manipulate automata from the popular Spot library and call function of the same library. Hence, you will only need to install the following dependencies to run CORP:
+CORP consists of Python scripts that manipulate automata from the popular Spot library and that call functions of the same library. Hence, you will only need to install the following dependencies to run CORP:
 
 - [Python 3](https://www.python.org/downloads/) (tested with version 3.11),
 - [Spot](https://spot.lre.epita.fr/install.html) (tested with version 2.11.6). Note that we explicitly require Spot's Python bindings so do not disable these during Spot's installation and be sure that `./configure` does not complain about your `PYTHONPATH` variable.
