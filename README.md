@@ -19,7 +19,7 @@ This repository contains all source files of CORP, which is written in Python, a
 CORP consists of Python scripts that manipulate automata from the popular Spot library and that call functions of the same library. Hence, you will only need to install the following dependencies to run CORP:
 
 - [Python 3](https://www.python.org/downloads/) (tested with version 3.11),
-- [Spot](https://spot.lre.epita.fr/install.html) (tested with version 2.11.6). Note that we explicitly require Spot's Python bindings so do not disable these during Spot's installation and be sure that `./configure` does not complain about your `PYTHONPATH` variable.
+- [Spot](https://spot.lre.epita.fr/install.html) (tested with version 2.11.6). Note that we explicitly require Spot's Python bindings so do not disable these during Spot's installation (per default, they are enabled). For many systems, you will need to specify a target directory for the Python bindings by running Spot's `./configure` with `--with-pythondir=...`. Spot's `./configure` will print a warning message at the very end if this is necessary, and will suggest a number of possible directories searched by your Python installation that you can use for again invoking `./configure --with-pythondir=...` before moving on to `make`.
 
 ## Usage
 
