@@ -39,7 +39,7 @@ def construct_counterfactual_automaton(system,trace):
     len_prefix = len(trace.prefix)
     len_loop = len(trace.cycle)
 
-    # Function for maping a trace index to a concrete index in the (prefix,loop) tuple.
+    # Function for mapping a trace index to a concrete index in the (prefix,loop) tuple.
     def tr(i):
         if i < len_prefix:
             return trace.prefix[i]
