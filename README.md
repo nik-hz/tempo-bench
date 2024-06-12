@@ -120,4 +120,4 @@ python3 -m notebook
 
 ## Literature
 
-[1] Synthesis of Temporal Causality. Bernd Finkbeiner, Hadar Frenkel, Niklas Metzger and Julian Siber. CAV 2024 (to appear).
+[1] Synthesis of Temporal Causality. Bernd Finkbeiner, Hadar Frenkel, Niklas Metzger and Julian Siber. CAV 2024.
