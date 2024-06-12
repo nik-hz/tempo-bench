@@ -29,7 +29,7 @@ CORP is used via the script `corp.py`. For instance, a cause for the problem in 
 python3 corp.py -s ./examples/simple1/system.hoa -e ./examples/simple1/effect.txt -t ./examples/simple1/trace.txt -o ./examples/simple1/result.hoa
 ```
 
-This specifies a system with the argument `-s`, an effect with `-e`, a trace with `-t` and outputs an automaton in the file spcified after `-o`. These arguments must always be provided. See the manual (`-h`) for further optional arguments.
+This specifies a system with the argument `-s`, an effect with `-e`, a trace with `-t` and outputs an automaton in the file specified after `-o`. These arguments must always be provided. See the manual (`-h`) for further optional arguments.
 
 We can use CORP also to check whether a given hypothesis is indeed the cause as follows:
 
@@ -44,7 +44,7 @@ Note that this command will still output the true cause that was synthesized alo
 To maximize interoperability, CORP uses the same formats as the popular Spot library for all inputs. Systems need to be specified in Spot's [supported fragment](https://spot.lre.epita.fr/hoa.html) of the [Hanoi automata format](http://adl.github.io/hoaf/), traces in Spot's [word format](https://spot.lre.epita.fr/ipynb/word.html), and effects either in Spot's [LTL syntax](https://spot.lre.epita.fr/ioltl.html) or as non-deterministic Büchi automata (to capture omega-regular properties) in the Hanoi format. A comprehensive introduction to these concepts can be found [here](https://spot.lre.epita.fr/concepts.html).
 
 #### System (`-s`): 
-We use the Hanoi automaton format to encode reactive systems (Mealy machines) as Büchi automata with a generic acceptance condidiction, and specify outputs via the `controllable-AP` field, e.g.:
+We use the Hanoi automaton format to encode reactive systems (Mealy machines) as Büchi automata with a generic acceptance condition, and specify outputs via the `controllable-AP` field, e.g.:
 
 ```
 HOA: v1
@@ -64,7 +64,7 @@ State: 1
 --END--
 ```
 
-specifies a simple automaton with input `a` and output `b`, two states and transitions such that everz input `a` is coupled with output `b`. Note that for the synthesis algorithm to work properly, every state input combination needs to be modeled in the automaton, e.g., it needs to be a proper Mealy machine. Note that CORP can easily be used with other formats such as [AIGER](https://fmv.jku.at/aiger/FORMAT.aiger) through utilizing the translation capabilities of the SPOT library.
+specifies a simple automaton with input `a` and output `b`, two states and transitions such that every input `a` is coupled with output `b`. Note that for the synthesis algorithm to work properly, every state input combination needs to be modeled in the automaton, e.g., it needs to be a proper Mealy machine. Note that CORP can easily be used with other formats such as [AIGER](https://fmv.jku.at/aiger/FORMAT.aiger) through utilizing the translation capabilities of the SPOT library.
 
 #### Trace (`-t`): 
 The trace is specified in Spot's word format, e.g.: 
@@ -78,7 +78,7 @@ The effect can either be specified in Spot's [LTL format](https://spot.lre.epita
 ```
 <>b
 ```
-or as an automaton in the Hanoi format (to express all omega-regular properties throug, e.g., an non-deterministic Büchi automaton), e.g.:
+or as an automaton in the Hanoi format (to express all omega-regular properties through, e.g., an non-deterministic Büchi automaton), e.g.:
 ```
 HOA: v1
 States: 2
