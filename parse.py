@@ -24,4 +24,4 @@ def effectfile(filename):
     try:
         return spot.postprocess(spot.complement(spot.automaton(filename)),'buchi','state-based','small','high')
     except:
-        return spot.postprocess(spot.translate(spot.formula("!" + open(filename).read())),'buchi','state-based','small','high')
+        return spot.postprocess(spot.translate(spot.formula("!(" + open(filename).read() + ")")),'buchi','state-based','small','high')
