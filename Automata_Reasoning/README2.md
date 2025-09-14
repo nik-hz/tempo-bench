@@ -40,7 +40,7 @@ Finally we leverage the causal hoa and the trace to generate a reasoning txt fil
 ```bash
 python3 Reasoning.py ./<relativepath>/result.hoa ./<relativepath>/trace.txt ./<relativepath>/effect.txt
 ```
-Example Reasoning Trace
+## Example Reasoning Trace
 ```
 ==== Reasoning Trace ====
 
