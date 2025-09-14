@@ -2,8 +2,8 @@
 The Automata Reasoning folder takes a TLSF File -> Generates an Automata -> Generates a Random Finite Trace -> Checks the validity of that Trace ->
 Converts Trace to Spot friendly Syntax -> Creates a causality HOA -> and Extracts a reasoning.txt file.
 ##Requirments
-- [Python 3](https://www.python.org/)(tested with version 3.12.2)
-- [Spot](https://spot.lre.epita.fr/)(tested with version 2.14.1)
+- [Python 3](https://www.python.org/) (tested with version 3.12.2)
+- [Spot](https://spot.lre.epita.fr/) (tested with version 2.14.1)
 - [Syfco](https://github.com/reactive-systems/syfco) (tested with version v1.2.1.2)
 - [Hoax-HOA-Executor](https://github.com/lou1306/hoax) (tested with version 0.1.4)
 - [Corp](https://github.com/reactive-systems/corp/tree/main) (tested by cloning from source)
