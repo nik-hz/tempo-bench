@@ -27,3 +27,86 @@ python check_trace.py ./<PATHFORSYSTEMHOA>.hoa <APs listed in order of appearanc
 #EXAMPLE output Trace for spot
 #!g_0&g_1&!g_2&!g_3&r_0&!r_1&r_2&r_3;!g_0&!g_1&!g_2&g_3&!r_0&!r_1&r_2&!r_3;cycle{1}
 #cycle{1} is tagged onto the end so that the finite trace is accepted with buchi automata
+```
+Generate a reasoning Trace
+```bash
+corp.py -s ./<PATHFORSYSTEMHOA>.hoa -e ./<relativepath>/effect.txt -t ./<relativepath>/trace.txt -o ./<relativepath>/result.hoa
+#the effect.txt will need to be created and written with all outputs of the system
+#it is written like this "<>(AP_Ouput1) & <>(AP_Output2) ...
+# the trace.txt is created by the check_trace.py
+```
+Generate Reasoning Trace
+Finally we leverage the causal hoa and the trace to generate a reasoning txt file for the trace. The effect.txt is used to know which outputs in the trace we are interested in accounting for.
+```bash
+python3 Reasoning.py ./<relativepath>/result.hoa ./<relativepath>/trace.txt ./<relativepath>/effect.txt
+```
+Example Reasoning Trace
+```
+==== Reasoning Trace ====
+
+Time 0:
+  Inputs true: AP0, AP2, AP3
+  Outputs true: g_1
+  Transition: 40 → 42 via [!1&3]
+  Interpretation: Because inputs {r_0, r_2, r_3} were true, system caused outputs {g_1}.
+
+Time 1:
+  Inputs true: AP2
+  Outputs true: g_3
+  Transition: 42 → 34 via [!1&2&!3]
+  Interpretation: Because inputs {r_2} were true, system caused outputs {g_3}.
+
+Time 2:
+  Inputs true: AP0, AP2
+  Outputs true: g_2
+  Transition: 34 → 30 via [t]
+  Interpretation: Because inputs {r_0, r_2} were true, system caused outputs {g_2}.
+
+Time 3:
+  Inputs true: AP0, AP3
+  Outputs true: g_2
+  Transition: 30 → 25 via [t]
+  Interpretation: Because inputs {r_0, r_3} were true, system caused outputs {g_2}.
+
+Time 4:
+  Inputs true: AP0, AP1, AP2
+  Outputs true: g_3
+  Transition: 25 → 21 via [t]
+  Interpretation: Because inputs {r_0, r_1, r_2} were true, system caused outputs {g_3}.
+
+Time 5:
+  Inputs true: AP3
+  Outputs true: g_1
+  Transition: 21 → 17 via [t]
+  Interpretation: Because inputs {r_3} were true, system caused outputs {g_1}.
+
+Time 6:
+  Inputs true: AP0, AP1, AP2, AP3
+  Outputs true: g_3
+  Transition: 17 → 12 via [t]
+  Interpretation: Because inputs {r_0, r_1, r_2, r_3} were true, system caused outputs {g_3}.
+
+Time 7:
+  Inputs true: AP1
+  Outputs true: g_1
+  Transition: 12 → 6 via [t]
+  Interpretation: Because inputs {r_1} were true, system caused outputs {g_1}.
+
+Time 8:
+  Inputs true: AP0, AP1, AP3
+  Outputs true: g_1
+  Transition: 6 → 1 via [t]
+  Interpretation: Because inputs {r_0, r_1, r_3} were true, system caused outputs {g_1}.
+
+Time 9:
+  Inputs true: AP3
+  Outputs true: g_1
+  Transition: 1 → 47 via [t]
+  Interpretation: Because inputs {r_3} were true, system caused outputs {g_1}.
+
+Time 10:
+  Inputs true: ∅
+  Outputs true: ∅
+  Transition: 47 → 47 via [!0 | 1 | 2 | 3]
+  Interpretation: Because inputs {∅} were true, system caused outputs {∅}.
+```
