@@ -23,14 +23,14 @@ python3 run_hoax.py ./<PATHFORSYSTEMHOA>.hoa random_generator.toml
 ```
 Check Trace and convert to a spot format
 ```bash
-python check_trace.py ./<PATHFORSYSTEMHOA>.hoa <APs listed in order of appearance in hoa seperated by spaces>
+python3 check_trace.py ./<PATHFORSYSTEMHOA>.hoa <APs listed in order of appearance in hoa seperated by spaces>
 #EXAMPLE output Trace for spot
 #!g_0&g_1&!g_2&!g_3&r_0&!r_1&r_2&r_3;!g_0&!g_1&!g_2&g_3&!r_0&!r_1&r_2&!r_3;cycle{1}
 #cycle{1} is tagged onto the end so that the finite trace is accepted with buchi automata
 ```
 Generate a reasoning Trace
 ```bash
-corp.py -s ./<PATHFORSYSTEMHOA>.hoa -e ./<relativepath>/effect.txt -t ./<relativepath>/trace.txt -o ./<relativepath>/result.hoa
+python3 corp.py -s ./<PATHFORSYSTEMHOA>.hoa -e ./<relativepath>/effect.txt -t ./<relativepath>/trace.txt -o ./<relativepath>/result.hoa
 #the effect.txt will need to be created and written with all outputs of the system
 #it is written like this "<>(AP_Ouput1) & <>(AP_Output2) ...
 # the trace.txt is created by the check_trace.py
