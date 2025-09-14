@@ -1,4 +1,4 @@
-#Usage
+# Usage
 The Automata Reasoning folder takes a TLSF File -> Generates an Automata -> Generates a Random Finite Trace -> Checks the validity of that Trace ->
 Converts Trace to Spot friendly Syntax -> Creates a causality HOA -> and Extracts a reasoning.txt file.
 ##Requirments
@@ -12,7 +12,7 @@ Follow installation instructions for syfco, spot, and python3 from links.
 python3 -m pip install hoax-hoa-executor
 git clone <Corp.git>
 ```
-##Current Work Flow
+## Current Work Flow
 for a given TLSF file synthesize an automata
 ```bash
 ltlsynt --tlsf /<PATHFORTLSFFILE>.tlsf > ./<PATHFORSYSTEMHOA>.hoa
