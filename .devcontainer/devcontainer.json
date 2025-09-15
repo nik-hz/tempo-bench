@@ -1,0 +1,20 @@
+{
+    "name": "reasoning_from_ltl",
+    "build": { "dockerfile": "Dockerfile", "context": ".." },
+    "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+    "mounts": [
+        "source=${localWorkspaceFolder}/tlsf_specs,target=/specs,type=bind"
+    ],
+    "containerEnv": {
+        "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
+        "GITHUB_USER": "${localEnv:GITHUB_USER}"
+    },
+    "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "editor.tabSize": 4,
+        "terminal.integrated.defaultProfile.linux": "zsh"
+    },
+    "extensions": ["ms-python.python", "ms-python.debugpy"],
+    "overrideCommand": true,
+    "postCreateCommand": "chsh -s /usr/bin/zsh"
+}
