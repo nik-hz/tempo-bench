@@ -13,6 +13,6 @@ level = "debug"
 
 [runner]
 # what to do in case of nondeterminism ("random", "user" or "first")
-nondet = "random"
+nondet = "first"
 # Optional simulation bound (if not set, stop with Ctrl-C)
 bound = 10
