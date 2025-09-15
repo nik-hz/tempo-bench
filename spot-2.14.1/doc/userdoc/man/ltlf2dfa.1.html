@@ -1,0 +1,286 @@
+<!-- Creator     : groff version 1.23.0 -->
+<!-- CreationDate: Mon Jul 21 08:52:57 2025 -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+"http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta name="generator" content="groff -Thtml, see www.gnu.org">
+<meta http-equiv="Content-Type" content="text/html; charset=US-ASCII">
+<meta name="Content-Style" content="text/css">
+<style type="text/css">
+       p       { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       pre     { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       table   { margin-top: 0; margin-bottom: 0; vertical-align: top }
+       h1      { text-align: center }
+</style>
+<title>LTLF2DFA</title>
+
+ <LINK REL="stylesheet" TYPE="text/css" HREF="../spot.css">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body class="man"><div id="org-div-home-and-up"><a accesskey="h" href="../tools.html"> UP </a>| <a accesskey="H" href="../index.html"> HOME </a></div>
+
+<h1 align="center">LTLF2DFA</h1>
+
+<div id="table-of-contents"><h2>Table of Contents</h2><div id="text-table-of-contents"><ul>
+<li><a href="#NAME">NAME</a></li>
+<li><a href="#SYNOPSIS">SYNOPSIS</a></li>
+<li><a href="#DESCRIPTION">DESCRIPTION</a></li>
+<li><a href="#Input options:">Input options:</a></li>
+<li><a href="#Processing options:">Processing options:</a></li>
+<li><a href="#Output options:">Output options:</a></li>
+<li><a href="#Miscellaneous options:">Miscellaneous options:</a></li>
+<li><a href="#NOTE ON OUTPUT FORMATS">NOTE ON OUTPUT FORMATS</a></li>
+<li><a href="#BIBLIOGRAPHY">BIBLIOGRAPHY</a></li>
+<li><a href="#REPORTING BUGS">REPORTING BUGS</a></li>
+<li><a href="#COPYRIGHT">COPYRIGHT</a></li>
+<li><a href="#SEE ALSO">SEE ALSO</a></li>
+</ul></div></div>
+
+
+<div class="outline-2"><h2>NAME
+<a name="NAME"></a>
+</h2></div>
+
+
+<p style="margin-left:11%; margin-top: 1em">ltlf2dfa -
+translate LTLf formulas into DFA</p>
+
+<div class="outline-2"><h2>SYNOPSIS
+<a name="SYNOPSIS"></a>
+</h2></div>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>ltlf2dfa</b>
+[<i>OPTION</i>...] [<i>FORMULA</i>...]</p>
+
+<div class="outline-2"><h2>DESCRIPTION
+<a name="DESCRIPTION"></a>
+</h2></div>
+
+
+<p style="margin-left:11%; margin-top: 1em">Convert LTLf
+formulas to transition-based deterministic finite
+automata.</p>
+
+<p style="margin-left:11%; margin-top: 1em">If multiple
+formulas are supplied, several automata will be output.</p>
+
+<h3>Input options:
+<a name="Input options:"></a>
+</h3>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>-f</b>,
+<b>--formula</b>=<i>STRING</i></p>
+
+<p style="margin-left:22%;">process the formula STRING</p>
+
+<p style="margin-left:11%;"><b>-F</b>,
+<b>--file</b>=<i>FILENAME</i>[<i>/COL</i>]</p>
+
+<p style="margin-left:22%;">process each line of FILENAME
+as a formula; if COL is a positive integer, assume a CSV
+file and read column COL; use a negative COL to drop the
+first line of the CSV file</p>
+
+<p style="margin-left:11%;"><b>--lbt-input</b></p>
+
+<p style="margin-left:22%;">read all formulas using
+LBT&rsquo;s prefix syntax</p>
+
+<p style="margin-left:11%;"><b>--lenient</b></p>
+
+<p style="margin-left:22%;">parenthesized blocks that
+cannot be parsed as subformulas are considered as atomic
+properties</p>
+
+<p style="margin-left:11%;"><b>--negate</b></p>
+
+<p style="margin-left:22%;">negate each formula</p>
+
+
+<p style="margin-left:11%;"><b>--tlsf</b>=<i>FILENAME</i>[<i>/VAR=VAL</i>[,VAR=VAL...]]</p>
+
+<p style="margin-left:22%;">Read a TLSF specification from
+FILENAME, and call syfco to convert it into LTLf. Any
+parameter assignment specified after a slash is passed as
+&rsquo;-op VAR=VAL&rsquo; to syfco.</p>
+
+<h3>Processing options:
+<a name="Processing options:"></a>
+</h3>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>--composition</b>=<i>size</i>|<i>ap</i></p>
+
+<p style="margin-left:22%;">How to order n-ary compositions
+in the compositional translation. By increasing size, or
+trying to group operands based on their APs.</p>
+
+<p style="margin-left:11%;"><b>--keep-names</b></p>
+
+<p style="margin-left:22%;">Keep the names of formulas that
+label states in the output automaton.</p>
+
+
+<p style="margin-left:11%;"><b>--minimize</b>=<i>yes</i>|<i>no</i></p>
+
+<p style="margin-left:22%;">Minimize the automaton (enabled
+by default).</p>
+
+
+<p style="margin-left:11%;"><b>--simplify-formula</b>=<i>yes</i>|<i>no</i></p>
+
+<p style="margin-left:22%;">simplify the LTLf formula with
+cheap rewriting rules (disabled by default)</p>
+
+
+<p style="margin-left:11%;"><b>--translation</b>=<i>direct</i>|<i>compositional</i></p>
+
+<p style="margin-left:22%;">Whether to translate the
+formula directly as a whole, or to assemble translations
+from subformulas. Default is compositional.</p>
+
+<h3>Output options:
+<a name="Output options:"></a>
+</h3>
+
+
+<p style="margin-left:11%; margin-top: 1em"><b>-d</b>,
+<b>--dot</b>[=<i>options</i>]</p>
+
+<p style="margin-left:22%;">print the automaton in DOT
+format</p>
+
+<p style="margin-left:11%;"><b>-H</b>,
+<b>--hoaf</b>[=<i>1.1</i>|<i>b</i>|<i>i</i>|<i>k</i>|<i>l</i>|<i>m</i>|<i>s</i>|<i>t</i>|<i>v</i>]</p>
+
+<p style="margin-left:22%;">Output the automaton in HOA
+format (default). Add letters to select (1.1) version 1.1 of
+the format, (b) create an alias basis if &gt;=2 AP are used,
+(i) use implicit labels for complete deterministic automata,
+(s) prefer state-based acceptance when possible [default],
+(t) force transition-based acceptance, (m) mix state and
+transition-based acceptance, (k) use state labels when
+possible, (l) single-line output, (v) verbose properties</p>
+
+<p style="margin-left:11%;"><b>--mtdfa-dot</b></p>
+
+<p style="margin-left:22%;">print the MTDFA in DOT
+format</p>
+
+
+<p style="margin-left:11%;"><b>--mtdfa-stats</b>[=<i>basic</i>|<i>nodes</i>|<i>paths</i>]</p>
+
+<p style="margin-left:22%;">print statistics about the
+MTDFA: &rsquo;basic&rsquo; (the default) displays only the
+number of states and atomic propositions (this is obtained
+in constant time), &rsquo;nodes&rsquo; additionally displays
+nodes counts (computing those is proportional to the size of
+the BDD) &rsquo;paths&rsquo; additionally displays path
+counts (this can be exponential in number of atomic
+propositions</p>
+
+<p style="margin-left:11%;"><b>-q</b>, <b>--quiet</b></p>
+
+<p style="margin-left:22%;">suppress all normal output</p>
+
+<h3>Miscellaneous options:
+<a name="Miscellaneous options:"></a>
+</h3>
+
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="9%">
+
+
+<p style="margin-top: 1em"><b>--help</b></p></td>
+<td width="2%"></td>
+<td width="23%">
+
+
+<p style="margin-top: 1em">print this help</p></td>
+<td width="55%">
+</td></tr>
+</table>
+
+<p style="margin-left:11%;"><b>--version</b></p>
+
+<p style="margin-left:22%;">print program version</p>
+
+<p style="margin-left:11%; margin-top: 1em">Mandatory or
+optional arguments to long options are also mandatory or
+optional for any corresponding short options.</p>
+
+<div class="outline-2"><h2>NOTE ON OUTPUT FORMATS
+<a name="NOTE ON OUTPUT FORMATS"></a>
+</h2></div>
+
+
+<p style="margin-left:11%; margin-top: 1em">Spot currently
+has little support for finite automata, and does not really
+support any DFA output format at the moment. When the
+<b>--dot</b> or <b>--hoaf</b> opetions are used, the DFA is
+converted into a B&uuml;chi automaton before being
+displayed.</p>
+
+<div class="outline-2"><h2>BIBLIOGRAPHY
+<a name="BIBLIOGRAPHY"></a>
+</h2></div>
+
+
+<p style="margin-left:11%; margin-top: 1em">The following
+paper describes how direct translation from LTLf to MTDFA
+works.</p>
+
+<table width="100%" border="0" rules="none" frame="void"
+       cellspacing="0" cellpadding="0">
+<tr valign="top" align="left">
+<td width="11%"></td>
+<td width="1%">
+
+
+<p>&bull;</p></td>
+<td width="88%">
+
+
+<p>Alexandre Duret-Lutz, Shufang Zhu, Nir Piterman,
+Giuseppe De Giacomo, and Moshe Y. Vardi: Engineering an LTLf
+Synthesis Tool. Proceedings of CIAA&rsquo;25. To appear.</p></td></tr>
+</table>
+
+<div class="outline-2"><h2>REPORTING BUGS
+<a name="REPORTING BUGS"></a>
+</h2></div>
+
+
+<p style="margin-left:11%; margin-top: 1em">Report bugs to
+&lt;<a href="mailto:spot@lrde.epita.fr">spot@lrde.epita.fr</a>&gt;.</p>
+
+<div class="outline-2"><h2>COPYRIGHT
+<a name="COPYRIGHT"></a>
+</h2></div>
+
+
+<p style="margin-left:11%; margin-top: 1em">Copyright
+&copy; 2025 by the Spot authors, see the AUTHORS File for
+details. License GPLv3+: <a href="http://www.gnu.org/licenses/gpl.html">GNU GPL version 3 or later</a>. <br>
+This is free software: you are free to change and
+redistribute it. There is NO WARRANTY, to the extent
+permitted by law.</p>
+
+<div class="outline-2"><h2>SEE ALSO
+<a name="SEE ALSO"></a>
+</h2></div>
+
+
+
+<p style="margin-left:11%; margin-top: 1em"><a href="ltlfsynt.1.html"><b>ltlfsynt</b></a>(1)</p>
+</body>
+</html>

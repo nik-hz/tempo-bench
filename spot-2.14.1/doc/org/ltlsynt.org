@@ -1,0 +1,472 @@
+# -*- coding: utf-8 -*-
+#+TITLE: =ltlsynt=
+#+DESCRIPTION: Spot command-line tool for synthesizing AIGER circuits from LTL/PSL formulas.
+#+INCLUDE: setup.org
+#+HTML_LINK_UP: tools.html
+#+PROPERTY: header-args:sh :results verbatim :exports both
+
+* Basic usage
+
+This tool synthesizes reactive controllers from LTL/PSL formulas.
+
+Consider a set $I$ of /input/ atomic propositions, a set $O$ of /output/ atomic
+propositions, and a PSL formula \phi over the propositions in $I \cup O$.  A
+*reactive controller* realizing \phi is a function $c: (2^{I})^\star \times 2^I \mapsto
+2^O$ such that, for every \omega-word $(u_i)_{i \in N} \in (2^I)^\omega$ over
+the input propositions, the word $(u_i \cup c(u_0 \dots u_{i-1}, u_i))_{i \in
+N}$ satisfies \phi.
+
+If a reactive controller exists, then one with finite memory
+exists. Such controllers are easily represented as automata (or more
+specifically as Mealy machines).  In the automaton representing the
+controller, the acceptance condition is irrelevant and trivially true.
+
+Here is a small example where $I=\{i_1,i_2\}$ and $O=\{o_1\}$.  The
+specification asks that $o_1$ hold at some point if and only if $i_1$
+and $i_2$ hold one after the other at some point.
+
+#+NAME: example
+#+BEGIN_SRC sh :exports both
+ltlsynt -f 'F(i1 & Xi2) <-> F(o1)'
+#+END_SRC
+
+#+RESULTS: example
+#+begin_example
+REALIZABLE
+HOA: v1
+States: 2
+Start: 0
+AP: 3 "i1" "o1" "i2"
+acc-name: all
+Acceptance: 0 t
+properties: trans-labels explicit-labels state-acc deterministic
+controllable-AP: 1
+--BODY--
+State: 0
+[!0&!1] 0
+[0&!1] 1
+State: 1
+[!0&!1&!2] 0
+[0&!1&!2] 1
+[1&2] 1
+--END--
+#+end_example
+
+The output is composed of two parts:
+- The first part is a single line stating =REALIZABLE= or
+  =UNREALIZABLE=; the presence of this line, required by the [[http://http://www.syntcomp.org/][SyntComp
+  competition]], can be disabled with option =--hide-status=.
+- The second part, only present in the =REALIZABLE= case, is an
+  automaton describing the controller.
+
+The controller contains the line =controllable-AP: 2=, which means
+that this automaton should be interpreted as a Mealy machine where
+=o0= is part of the output.  Using the =--dot= option, makes it easier
+to visualize this machine.
+
+#+NAME: exampledot
+#+BEGIN_SRC sh :exports code
+ltlsynt -f 'F(i1 & Xi2) <-> F(o1)' --hide-status --dot
+#+END_SRC
+
+#+BEGIN_SRC dot :file ltlsyntex.svg :var txt=exampledot :exports results
+  $txt
+#+END_SRC
+
+#+RESULTS:
+[[file:ltlsyntex.svg]]
+
+The following example illustrates the case of an unrealizable specification. As
+=a= is an input proposition, there is no way to guarantee that it will
+eventually hold.
+
+#+BEGIN_SRC sh :epilogue true
+ltlsynt --ins=a -f 'F a'
+#+END_SRC
+
+#+RESULTS:
+: UNREALIZABLE
+
+* Input options
+   :PROPERTIES:
+   :CUSTOM_ID: input-options
+   :END:
+
+=ltlsynt= require two pieces of information two solve a reactive
+LTL/PSL synthesis problem: an LTL (or PSL) formula, and a partition of
+its atomic propositions as input and output.
+
+The specification formula can be passed with =-f/--formula= or
+=-F/--file=.  If multiple specifications formulas are passed, they
+will all be solved individually.
+
+The input/output partition can be given in several ways.  If it is
+not specified, =ltlsynt= assumes that input variables should start
+with =i=, and output variables should start with =o=.
+
+Options =--ins= and =--outs= should be followed by a comma-separated
+list of input atomic propositions, or input regexes enclosed in
+slashes.  E.g., =--ins=switch,/^in/,car=.  If only one of these
+options is given, atomic propositions not matched by that option
+are assumed to belong to the other set.
+
+Another way to specify the input/output partition is using a =*.part=
+file passed to the =--part-file= option.  Such a file is used by
+several other synthesis tools.  The format is space-separated list of
+words representing atomic-propositions.  Two keywords =.inputs= and
+=.outputs= indicate the set of the atomic-propositions that follow.
+For instance:
+
+#+BEGIN_EXAMPLE
+.inputs request cancel
+.outputs grant ack
+#+END_EXAMPLE
+
+Using =--part-file=THEABOVEFILE= is equivalent to
+=--ins=request,cancel --outs=grant,ack=.
+
+As an extension to this simple =*.part= format, words enclosed in
+slashes are interpreted as regexes, like for the =--ins= and =--outs=
+options.
+
+* TLSF input
+
+=ltlsynt= was made with the [[http://syntcomp.org/][SYNTCOMP]] competition in mind, and more
+specifically the TLSF track of this competition.  TLSF is a high-level
+specification language created for the purpose of this competition.
+Fortunately, the SYNTCOMP organizers also provide a tool called
+[[https://github.com/reactive-systems/syfco][=syfco=]] which can translate a TLSF specification to an LTL formula.
+
+The following line shows how a TLSF specification called =FILE= can
+be synthesized using =syfco= and =ltlsynt=:
+
+#+BEGIN_SRC sh :export code
+ltlsynt --tlsf FILE
+#+END_SRC
+
+The above =--tlsf= option will call =syfco= (which must be on your
+=$PATH=) to perform the conversion and extract output signals, as if
+you had used:
+
+#+BEGIN_SRC sh :export code
+LTL=$(syfco -f ltlxba -m fully FILE)
+OUT=$(syfco --print-output-signals FILE)
+ltlsynt --formula="$LTL" --outs="$OUT"
+#+END_SRC
+
+Additionally, using =--tlsf= will verify that the TLSF specification
+is defined using Mealy semantics, as =ltlsynt= does not yet support
+Moore semantics.
+
+Some TLSF models are defined with parameters.  Those parameters have
+default values specified within the =PARAMETERS= block of the TLSF
+specification.  You may tell =ltlsynt= to change those parameters by
+appending =/PARAM1=VAL1,PARAM2=VAL2...= to the filename.  For
+instance:
+
+#+BEGIN_SRC sh :export code
+ltlsynt --tlsf arbiter.tlsf/n=3
+#+END_SRC
+
+
+* Output options
+
+By default, the controller is output in HOA format, but it can be
+output as an And-Inverter-Graph in [[http://fmv.jku.at/aiger/][AIGER format]] using the =--aiger=
+flag. This is the output format required for the [[http://syntcomp.org/][SYNTCOMP]] competition.
+
+#+NAME: exampleaig
+#+BEGIN_SRC sh :exports both
+ltlsynt -f 'F(i1 & Xi2) <-> F(o1)' --aiger
+#+END_SRC
+
+#+RESULTS: exampleaig
+#+begin_example
+REALIZABLE
+aag 5 2 1 1 2
+2
+4
+6 11
+8
+8 4 6
+10 3 9
+i0 i1
+i1 i2
+o0 o1
+#+end_example
+
+The above format is not very human friendly.  Again, by passing both
+=--aiger= and =--dot=, one can display the And-Inverter-Graph representing
+the controller:
+
+#+NAME: exampleaigdot
+#+BEGIN_SRC sh :exports code
+ltlsynt -f 'F(i1 & Xi2) <-> F(o1)' --hide-status --aiger --dot
+#+END_SRC
+
+#+RESULTS: exampleaigdot
+
+#+BEGIN_SRC dot :file ltlsyntexaig.svg :var txt=exampleaigdot :exports results
+  $txt
+#+END_SRC
+
+#+RESULTS:
+[[file:ltlsyntexaig.svg]]
+
+In the above diagram, round nodes represent AND gates.  Small black
+circles represent inversions (or negations), colored triangles are
+used to represent input signals (at the bottom) and output signals (at
+the top), and finally rectangles represent latches.  A latch is a one
+bit register that delays the signal by one step.  Initially, all
+latches are assumed to contain =false=, and they emit their value from
+the =*_out= rectangles at the bottom.  Their input value, to be
+emitted at the next step, is received via the =*_in= boxes at the top.
+In =ltlsynt='s encoding, the set of latches is used to keep track of
+the current state of the Mealy machine.
+
+The generation of a controller can be disabled with the flag
+=--realizability=.  In this case, =ltlsynt='s output is limited to
+=REALIZABLE= or =UNREALIZABLE=.
+
+* Internal details
+
+The tool reduces the synthesis problem to a parity game, and solves the parity
+game using Zielonka's recursive algorithm.  The process can be pictured as follows.
+
+[[file:ltlsynt.svg]]
+
+LTL decomposition consist in splitting the specification into multiple
+smaller constraints on disjoint subsets of the output values (as
+described by [[https://arxiv.org/abs/2103.08459][Finkbeiner, Geier, and Passing]]), solve those constraints
+separately, and then combine them while encoding the AIGER circuit.
+This is enabled by default, but can be disabled by passing option
+=--decompose=no=.
+
+The ad hoc construction on the top is just a shortcut for some type of
+constraints that can be solved directly by converting the constraint
+into a DBA.
+
+Otherwise, conversion to parity game (represented by the blue zone) is
+done using one of several algorithms specified by the =--algo= option.
+The game is then solved, producing a strategy if the game is realizable.
+
+If =ltlsynt= is in =--realizability= mode, the process stops here
+
+In synthesis mode, the strategy is first simplified.  How this is done
+can be fine-tuned with option =--simplify=:
+#+BEGIN_SRC sh :exports results
+ltlsynt --help | sed -n '/--simplify=/,/^$/p' | sed '$d'
+#+END_SRC
+#+RESULTS:
+:       --simplify=no|bisim|bwoa|sat|bisim-sat|bwoa-sat
+:                              simplification to apply to the controler (no)
+:                              nothing, (bisim) bisimulation-based reduction,
+:                              (bwoa) bissimulation-based reduction with output
+:                              assignment, (sat) SAT-based minimization,
+:                              (bisim-sat) SAT after bisim, (bwoa-sat) SAT after
+:                              bwoa.  Defaults to 'bwoa'.
+
+<<AIG>>
+
+Finally, the strategy is encoded into [[http://fmv.jku.at/aiger/][AIGER]].  The =--aiger= option can
+take an argument to specify a type of encoding to use: by default it
+is =ite= for if-then-else, because it follows the structure of BDD
+used to encode the conditions in the strategy.  An alternative
+encoding is =isop= where condition are first put into
+irredundant-sum-of-product, or =both= if both encodings should be
+tried.  Additionally, these optiosn can accept the suffix =+ud= (use
+dual) to attempt to encode each condition and its negation and keep
+the smallest one, =+dc= (don't care) to take advantage of /don't care/
+values in the output, and one of =+sub0=, =+sub1=, or =+sub2= to test
+various grouping of variables in the encoding.  Multiple encodings can
+be tried by separating them using commas.  For instance
+=--aiger=isop,isop+dc,isop+ud= will try three different encodings.
+
+* Other useful options
+
+** Printing games
+
+You can also ask =ltlsynt= to print to obtained parity game into
+[[https://github.com/tcsprojects/pgsolver][PGSolver]] format, with the flag =--print-pg=, or in the HOA format,
+using =--print-game-hoa=.  These flags deactivate the resolution of the
+parity game.  Note that if any of those flag is used with =--dot=, the game
+will be printed in the Dot format instead:
+
+#+NAME: examplegamedot
+#+BEGIN_SRC sh :exports code
+ltlsynt -f '(i1 & i2) <-> F(o1 & X(!o1))' --print-game-hoa --dot
+#+END_SRC
+#+BEGIN_SRC dot :file ltlsyntexgame.svg :var txt=examplegamedot :exports results
+  $txt
+#+END_SRC
+#+RESULTS:
+[[file:ltlsyntexgame.svg]]
+
+** Saving statistics in CSV
+   :PROPERTIES:
+   :CUSTOM_ID: csv
+   :END:
+
+For benchmarking purpose, the =--csv= option can be used to record
+intermediate statistics about the resolution.
+
+For instance the following command builds controllers (when they
+exist) for the 23 demonstration specifications from [[http://www.ist.tugraz.at/staff/jobstmann/lily/][Lily 1.0.2]] while
+saving some statistics in =bench.csv=.  (If you compare our results
+with theirs, keep in mind that Lily uses Moore's semantics, while
+=ltlsynt= uses Mealy's semantics.)  We use =-q= to hide the
+constructed controllers, as we are only interested in the statistics.
+
+#+BEGIN_SRC sh :results none :exports both :epilogue true
+  genltl --lily-patterns | ltlsynt --algo=acd --aiger -q --csv=bench.csv
+#+END_SRC
+
+After execution, =bench.csv= contains a table like the following:
+
+#+BEGIN_SRC sh :results output raw :exports results
+sed 's/"//g
+s/|/\\vert{}/g
+s/--/@@html:--@@/g
+1a\
+|-|
+s/^/| /
+s/$/ |/
+s/,/|/g
+' bench.csv
+rm -f bench.csv
+#+END_SRC
+
+#+RESULTS:
+| source | subspecs | algo | split |  total_time | sum_trans_time | sum_split_time | sum_todpa_time | sum_solve_time | sum_strat2aut_time |    aig_time | realizable | max_trans_states | max_trans_edges | max_trans_colors | max_trans_ap | max_game_states | max_game_colors | max_strat_states | max_strat_edges | sum_strat_states | sum_strat_edges | max_simpl_strat_states | max_simpl_strat_edges | sum_simpl_strat_states | sum_simpl_strat_edges | aig_latches | aig_gates |
+|--------+----------+------+-------+-------------+----------------+----------------+----------------+----------------+--------------------+-------------+------------+------------------+-----------------+------------------+--------------+-----------------+-----------------+------------------+-----------------+------------------+-----------------+------------------------+-----------------------+------------------------+-----------------------+-------------+-----------|
+| -:1    |        2 | acd  | auto  | 0.000303965 |    0.000134134 |     1.3776e-05 |     1.4868e-05 |      6.342e-06 |                  0 |           0 |          0 |                1 |               0 |                0 |            0 |               3 |               1 |                0 |               0 |                0 |               0 |                      0 |                     0 |                      0 |                     0 |           0 |         0 |
+| -:2    |        2 | acd  | auto  | 0.000245034 |    0.000164421 |      8.267e-06 |     1.3866e-05 |      4.198e-06 |          6.072e-06 |           0 |          0 |                5 |               8 |                0 |            1 |              10 |               0 |                2 |               2 |                2 |               2 |                      2 |                     2 |                      2 |                     2 |           0 |         0 |
+| -:3    |        1 | acd  | auto  |  0.00097245 |    0.000769716 |     2.7682e-05 |     1.1312e-05 |     1.4106e-05 |           5.48e-06 |  4.4104e-05 |          1 |               12 |              46 |                1 |            3 |              26 |               1 |                5 |               5 |                5 |               5 |                      2 |                     2 |                      2 |                     2 |           1 |         0 |
+| -:4    |        1 | acd  | auto  | 0.000869816 |    0.000614923 |     3.3774e-05 |     1.2995e-05 |     1.7624e-05 |          6.643e-06 |  4.6789e-05 |          1 |               15 |              62 |                1 |            3 |              33 |               1 |                6 |               6 |                6 |               6 |                      3 |                     3 |                      3 |                     3 |           2 |         8 |
+| -:5    |        1 | acd  | auto  | 0.000668093 |    0.000366293 |     4.7079e-05 |     1.5288e-05 |     1.7714e-05 |         1.5038e-05 | 0.000100901 |          1 |               20 |              88 |                1 |            3 |              47 |               1 |                8 |               9 |                8 |               9 |                      6 |                     7 |                      6 |                     7 |           3 |        46 |
+| -:6    |        1 | acd  | auto  | 0.000651803 |    0.000321147 |     4.5606e-05 |     1.7002e-05 |     2.0659e-05 |         1.7443e-05 |  9.2906e-05 |          1 |               24 |             111 |                1 |            3 |              55 |               1 |               11 |              12 |               11 |              12 |                      7 |                     9 |                      7 |                     9 |           3 |        46 |
+| -:7    |        1 | acd  | auto  | 0.000461292 |    0.000249241 |     2.4827e-05 |      9.738e-06 |     1.0901e-05 |          5.821e-06 |  6.1877e-05 |          1 |               11 |              38 |                1 |            3 |              26 |               1 |                7 |               8 |                7 |               8 |                      6 |                     7 |                      6 |                     7 |           3 |        34 |
+| -:8    |        1 | acd  | auto  |  1.9026e-05 |      1.022e-06 |              0 |              0 |              0 |                  0 |   6.222e-06 |          1 |                0 |               0 |                0 |            0 |               0 |               0 |                0 |               0 |                0 |               0 |                      1 |                     1 |                      1 |                     1 |           0 |         0 |
+| -:9    |        1 | acd  | auto  |  0.00031188 |    0.000218534 |     1.3225e-05 |     1.7242e-05 |      1.013e-05 |          3.927e-06 |  1.2533e-05 |          1 |                6 |              19 |                2 |            2 |              16 |               2 |                2 |               3 |                2 |               3 |                      2 |                     3 |                      2 |                     3 |           1 |         1 |
+| -:10   |        1 | acd  | auto  |  1.9988e-05 |       5.91e-07 |              0 |              0 |              0 |                  0 |   7.384e-06 |          1 |                0 |               0 |                0 |            0 |               0 |               0 |                0 |               0 |                0 |               0 |                      1 |                     1 |                      1 |                     1 |           0 |         0 |
+| -:11   |        1 | acd  | auto  |  2.5609e-05 |      9.467e-06 |      2.384e-06 |      2.264e-06 |      2.875e-06 |                  0 |           0 |          0 |                1 |               0 |                0 |            0 |               3 |               1 |                0 |               0 |                0 |               0 |                      0 |                     0 |                      0 |                     0 |           0 |         0 |
+| -:12   |        1 | acd  | auto  |  2.1852e-05 |       9.02e-07 |              0 |              0 |              0 |                  0 |   8.917e-06 |          1 |                0 |               0 |                0 |            0 |               0 |               0 |                0 |               0 |                0 |               0 |                      1 |                     1 |                      1 |                     1 |           0 |         0 |
+| -:13   |        1 | acd  | auto  | 0.000136779 |     8.2326e-05 |      6.192e-06 |      4.859e-06 |      3.837e-06 |          3.146e-06 |   8.726e-06 |          1 |                2 |               3 |                1 |            2 |               5 |               1 |                2 |               2 |                2 |               2 |                      1 |                     2 |                      1 |                     2 |           0 |         0 |
+| -:14   |        1 | acd  | auto  | 0.000187885 |    0.000118675 |      6.121e-06 |      8.196e-06 |      3.877e-06 |          2.595e-06 |  1.2323e-05 |          1 |                1 |               3 |                2 |            2 |               4 |               1 |                2 |               2 |                2 |               2 |                      2 |                     2 |                      2 |                     2 |           1 |         0 |
+| -:15   |        1 | acd  | auto  | 0.000608131 |     0.00032767 |     3.9064e-05 |     1.8705e-05 |     1.4648e-05 |          6.963e-06 |  7.7126e-05 |          1 |                8 |              40 |                2 |            4 |              30 |               1 |                7 |              12 |                7 |              12 |                      5 |                    10 |                      5 |                    10 |           3 |        38 |
+| -:16   |        1 | acd  | auto  |   0.0020513 |     0.00109375 |    0.000205479 |     5.4463e-05 |     5.0736e-05 |         2.3124e-05 | 0.000392612 |          1 |               22 |             225 |                3 |            6 |             103 |               1 |               22 |              40 |               22 |              40 |                     17 |                    36 |                     17 |                    36 |           5 |       326 |
+| -:17   |        1 | acd  | auto  | 0.000490047 |    0.000314174 |     1.4407e-05 |     1.7343e-05 |      7.845e-06 |          5.431e-06 |  3.4405e-05 |          1 |                1 |               4 |                3 |            3 |               6 |               1 |                3 |               3 |                3 |               3 |                      3 |                     3 |                      3 |                     3 |           2 |         3 |
+| -:18   |        1 | acd  | auto  | 0.000649108 |    0.000444461 |     1.8966e-05 |     2.0148e-05 |      8.085e-06 |          5.571e-06 |  4.1709e-05 |          1 |                1 |               5 |                4 |            4 |               8 |               1 |                4 |               4 |                4 |               4 |                      4 |                     4 |                      4 |                     4 |           2 |         5 |
+| -:19   |        1 | acd  | auto  | 0.000315326 |    0.000202213 |     1.4317e-05 |     1.6781e-05 |      8.155e-06 |          2.875e-06 |   1.095e-05 |          1 |                4 |              15 |                2 |            3 |              11 |               2 |                1 |               1 |                1 |               1 |                      1 |                     1 |                      1 |                     1 |           0 |         0 |
+| -:20   |        1 | acd  | auto  |  0.00716533 |     0.00515241 |     0.00101416 |    0.000381501 |    0.000419403 |         2.0258e-05 |  4.9484e-05 |          1 |              311 |            3488 |                2 |            5 |            1002 |               2 |               10 |              10 |               10 |              10 |                      6 |                     8 |                      6 |                     8 |           3 |        30 |
+| -:21   |        1 | acd  | auto  |    0.042073 |      0.0385331 |    0.000692741 |     5.4302e-05 |    0.000129435 |         8.6364e-05 |  0.00143123 |          1 |               75 |             546 |                1 |            8 |             371 |               1 |               74 |             228 |               74 |             228 |                     71 |                   213 |                     71 |                   213 |           7 |      1299 |
+| -:22   |        1 | acd  | auto  |  0.00144103 |    0.000751522 |    0.000109046 |     3.6098e-05 |     4.4664e-05 |         2.1271e-05 | 0.000214305 |          1 |               30 |             161 |                2 |            4 |              86 |               1 |               22 |              25 |               22 |              25 |                     15 |                    19 |                     15 |                    19 |           4 |       194 |
+| -:23   |        1 | acd  | auto  |  0.00031718 |    0.000202743 |     1.1321e-05 |      9.749e-06 |      8.937e-06 |           5.14e-06 |  2.3344e-05 |          1 |                7 |              16 |                1 |            2 |              17 |               1 |                5 |               6 |                5 |               6 |                      3 |                     4 |                      3 |                     4 |           2 |        10 |
+
+#+ATTR_HTML: :class csv-table
+#+RESULTS:
+
+The subset of columns output is adjusted according to the task
+performed by =ltlsynt=.  For instance with =--realizability=, the CSV
+file will not include statistics about the winning strategies or the
+AIG circuits.  When reading a game with =--from-pgame=, columns giving
+statistics about LTL translation will be omitted.
+
+The names of the columns should be mostly self explanatory.  The
+decomposition of the specification into multiple sub-specifications
+makes it slightly incoveniant to track statistics in a run.  The
+column =subspecs= indicates how many sub-specifications were found in
+the original specification.  Columns with names of the form =sum_*=
+accumulate their statistics over all subspecifications.  Columns with
+names of the form =max_*= keep only the largest statistics.  The following
+statistics are gathered:
+
+- =source=: location of the specification in the form FILENAME:LINE
+  (FILENAME is =-= when reading from standard input as in the above
+  example).
+- =formula= (if requested with option =--csv-with-formula=): is the
+  actual LTL formula used for the specification, is usually makes the
+  CSV file very large
+- =subspecs=: the number of sub-specifications resulting from the
+  decomposition
+- =algo=: the name of the approach used to construct game, as
+  specified with the =--algo= option
+- =split=: the name of the approach used to split the automaton into
+  input and output steps, as specified with the =--split= option
+- =total_time=: total time measured by =ltlsynt= to solve the problem
+  once the problem has been loaded (parsing of the formula, conversion
+  from TSLF, or parsing of a parity game are all excluded)
+- =sum_trans_time=: sum of the translation time used to obtain an
+  automaton from each subspecification.
+- =sum_split_time=: sum of the times used to split the automata
+- =sum_todpa_time=: sum of the times used to paritize the automata
+- =sum_solve_time=: sum of the times used to solve the game for each
+  subspecification
+- =sum_strat2aut_time=: sum of the time needed to extract the
+  strategies
+- =aig_time=: time used to encode all strategies into one AIG circuit
+- =realizable=: whether the specification is realizable
+- =max_trans_states,max_trans_edges,max_trans_colors,max_trans_ap=:
+  Size of the largest automaton constructed for a subspecification.
+  The largest size is actually the largest quadruple of the form
+  (states,edges,colors,ap), so those maximum values are not
+  independent.
+- =max_game_states=: maximum number of state in any game constructed
+- =max_game_colors=: maximum numbers of colors in any game constructed
+  (might not be the same game as for =max_game_states=)
+- =max_strat_states,max_strat_edges=: size of the largest strategy
+  found.  The largest size is the largest pair (states,edges), so
+  those two values are not indeendent.
+- =sum_strat_states,sum_strat_edges=: sum of the states/edges in
+  strategies for all subspecifications
+- =max_simpl_strat_states,max_simpl_strat_edges=: size of the largest
+  simplified strategy.
+- =sum_simpl_strat_states,sum_simpl_strat_edges=: sum of the
+  states/edges in simplified strategies for all subspecifications
+- =aig_gates,aig_latches=: Size of the AIG circuit, if requested.
+
+
+In this example table, some of the intermediate processing times are
+listed as =0= (e.g., for input 8, 10, 12) because the specifications
+can be found to be realizable trivially without building any game.
+
+
+** Verifying the output
+
+The =--verify= option requests that the produced strategy or aiger
+circuit are compatible with the specification.  This is done by
+ensuring that they do not intersect the negation of the specification.
+
+* References
+
+The initial reduction from LTL to parity game is described in the
+following paper:
+
+- *Reactive Synthesis from LTL Specification with Spot*, /Thibaud Michaud/,
+  /Maximilien Colange/.  Presented in SYNT@CAV'18.  ([[https://www.lrde.epita.fr/dload/papers/michaud.18.synt.pdf][pdf]] | [[https://www.lrde.epita.fr/~max/bibtexbrowser.php?key=michaud.18.synt&bib=perso.bib][bib]])
+
+Further improvements are described in the following paper:
+
+- *Improvements to =ltlsynt=*, /Florian Renkin/, /Philipp Schlehuber/,
+  /Alexandre Duret-Lutz/, and /Adrien Pommellet/.  Presented at the
+  SYNT'21 workshop.  ([[https://www.lrde.epita.fr/~adl/dl/adl/renkin.21.synt.pdf][pdf]] | [[https://www.lrde.epita.fr/~adl/dl/adl_bib.html#renkin.21.synt][bib]])
+
+Simplification of Mealy machines is discussed in the following papers:
+
+- *Effective reductions of Mealy machines*, /Florian Renkin/,
+  /Philipp Schlehuber-Caissier/, /Alexandre Duret-Lutz/, and /Adrien Pommellet/.
+  Presented at FORTE'22.  ([[https://www.lrde.epita.fr/~adl/dl/adl/renkin.22.forte.pdf][pdf]] | [[https://www.lrde.epita.fr/~adl/dl/adl_bib.html#renkin.22.forte][bib]])
+- *The Mealy-machine reduction functions of Spot*, /Florian Renkin/,
+  /Philipp Schlehuber-Caissier/, /Alexandre Duret-Lutz/, and /Adrien Pommellet/.
+  Science of Computer Programming, 230(102995), August 2023. ([[https://www.lrde.epita.fr/~adl/dl/adl_bib.html#renkin.23.fmsd][bib]] | [[https://www.lrde.epita.fr/~adl/dl/adl/renkin.23.fmsd.pdf][pdf]])
+
+A more recent paper covering many aspects of =ltlsynt= is the following
+
+- *Dissecting ltlsynt*, /Florian Renkin/, /Philipp
+  Schlehuber-Caissier/, /Alexandre Duret-Lutz/, and Adrien Pommellet.
+  In Formal Methods in System Design, 2023.  ([[https://www.lrde.epita.fr/~adl/dl/adl_bib.html#renkin.23.scp][bib]] | [[https://www.lrde.epita.fr/~adl/dl/adl/renkin.23.scp.pdf][pdf]])
+
+#  LocalWords:  utf ltlsynt AIGER html args mapsto SRC acc aiger TLSF
+#  LocalWords:  UNREALIZABLE unrealizable SYNTCOMP realizability Proc
+#  LocalWords:  syfco ltlxba Zielonka's Thibaud Michaud Maximilien
+#  LocalWords:  Colange PGSolver

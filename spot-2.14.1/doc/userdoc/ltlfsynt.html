@@ -1,0 +1,884 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2025-07-21 Mon 08:53 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>=ltlfsynt=</title>
+<meta name="author" content="root" />
+<meta name="description" content="Spot command-line tool for checking realizabiity of LTLf formulas" />
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<link rel="stylesheet" type="text/css" href="spot.css" />
+<script>
+  window.MathJax = {
+    tex: {
+      ams: {
+        multlineWidth: '85%'
+      },
+      tags: 'ams',
+      tagSide: 'right',
+      tagIndent: '.8em'
+    },
+    chtml: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    svg: {
+      scale: 1.0,
+      displayAlign: 'center',
+      displayIndent: '0em'
+    },
+    output: {
+      font: 'mathjax-modern',
+      displayOverflow: 'overflow'
+    }
+  };
+</script>
+
+<script
+  id="MathJax-script"
+  async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+</script>
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href="tools.html"> UP </a>
+ |
+ <a accesskey="H" href="index.html"> HOME </a>
+</div><div id="content" class="content">
+<h1 class="title"><code>ltlfsynt</code></h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#orgedc8061">Example</a></li>
+<li><a href="#org5a4c166">Invoking <code>ltlfsynt</code></a></li>
+<li><a href="#org5ceb60b">Fine-tuning</a>
+<ul>
+<li><a href="#org609f1f3">Preprocessing</a></li>
+<li><a href="#org364608a">Translation &amp; Game solving</a></li>
+<li><a href="#org37467bd">Realizability</a></li>
+<li><a href="#org283c998">AIG encoding</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+
+<div id="org033c461" class="figure">
+<p><object type="image/svg+xml" data="spot2.svg" class="org-svg" id="spotlogo">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+<p>
+Reactive synthesis is the problem of synthesizing a controller that
+produces output signals based on a history of input signals, under the
+constraint of some specification that relates the input and output
+signals over time.
+</p>
+
+<p>
+<code>ltlfsynt</code> solves this problem when the specification is an LTLf
+formula (i.e., LTL interpreted over finite traces).  It can either
+decide realizability (i.e., decide if a controller satisfying the
+formula exist) or synthesize a reactive controller as an And-Inverter
+Graph (AIG).
+</p>
+
+<p>
+Consider a set \(I\) of <i>input</i> atomic propositions, a set \(O\) of
+<i>output</i> atomic propositions, and an LTLf formula &phi; over the
+propositions in \(I \cup O\).  This tool can build controllers using two
+different semantics:
+</p>
+
+<dl class="org-dl">
+<dt>Mealy controller</dt><dd>A Mealy controller is a function \(c:
+  (2^{I})^+\to 2^O\).  A Mealy controller realizes \(\varphi\) if for any
+&omega;-word \((u_i)_{i \in \mathbb{N}} \in (2^I)^\omega\) over the
+input propositions, there exists some position \(k>0\) such that the
+(nonempty) word \((u_i \cup c(u_0 \dots u_{i-1}, u_i))_{0 \le i \le
+  k}\in (2^{I\cup O})^k\) satisfies &phi;.</dd>
+
+<dt>Moore controller</dt><dd>A Moore controller is a function \(c:
+  (2^{I})^*\to 2^O\).  A Moore controller realizes \(\varphi\) if for any
+&omega;-word \((u_i)_{i \in \mathbb{N}} \in (2^I)^\omega\) over the
+input propositions, there exists some position \(k>0\) such that the
+(nonempty) word \((u_i \cup c(u_0 \dots u_{i-1}))_{0 \le i \le k}\in
+  (2^{I\cup O})^k\) satisfies &phi;.</dd>
+</dl>
+
+<p>
+In other words, a Mealy controller should decide the outputs for the
+current instant based on the history of all inputs as well as the
+current inputs.  A Moore controller should decide outputs without
+knowing the current inputs, it only knows about past inputs.  In
+either semantics, the controller should ensure that &phi; is satisfied
+after a finite number of steps.  Once &phi; has been satisfied, the
+output of the controller is unconstrained.
+</p>
+<div id="outline-container-orgedc8061" class="outline-2">
+<h2 id="orgedc8061">Example</h2>
+<div class="outline-text-2" id="text-orgedc8061">
+<p>
+Here is an example LTLf specification generated by <a href="genltl.html"><code>genltl</code></a>:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">genltl --tv-counter-mealy=2 &gt;counter2.ltlf
+sed <span class="org-string">'s/(*G/\n&amp;/g'</span> counter2.ltlf
+</pre>
+</div>
+
+<pre class="example">
+(init0 &lt;-&gt; ob0) &amp; (init1 &lt;-&gt; ob1) &amp; 
+G(inc &lt;-&gt; oc0) &amp; 
+G((X[!]ob0 -&gt; (ob0 xor oc0)) &amp; (X[!]!ob0 -&gt; (ob0 &lt;-&gt; oc0))) &amp; 
+G(oc1 &lt;-&gt; (ob0 &amp; oc0)) &amp; 
+G((X[!]ob1 -&gt; (ob1 xor oc1)) &amp; (X[!]!ob1 -&gt; (ob1 &lt;-&gt; oc1))) &amp; 
+(G(!inc -&gt; X[!]inc) -&gt; F(!ob0 &amp; !ob1))
+</pre>
+
+
+<p>
+Output variables <code>ob0</code> and <code>ob1</code> encode a 2-bit counter.  Input
+variables <code>init0</code> and <code>init1</code> specify the initial value of this
+counter, as encoded on the first line.
+</p>
+
+<p>
+When the input variable <code>inc</code> is set, the counter should be
+incremented by one on the next step.  This is encoded on the next four
+lines, by using to extra output variables to represent carries
+(<code>oc0</code> and <code>oc1</code>), and ensuring that, if a next step exists, the next
+value of the counter (<code>X[!]ob0</code> and <code>X[!]ob1</code>) will be set according
+to its current value and to that of the carries.
+</p>
+
+<div class="note" id="orgbe08696">
+<p>
+<code>X[!]</code> is Spot's notation for the <i>strong next</i> operator of LTLf.  The
+<i>weak next</i> is simply noted <code>X</code>.  Since we are working with finite
+words, a <i>strong next</i> ensures that the current instant is not the last
+one.  A <i>weak next</i> is always satisfied on the last instant.
+</p>
+
+</div>
+
+<p>
+The last implication is something we would like to confirm under the
+above rules, and regardless of the initial value of the counter.
+Assuming the input variable <code>inc</code> is raised at least every other step
+(<code>G(!inc -&gt; X[!]inc)</code>), we claim that the counter will eventually wrap
+back to zero <code>F(!ob0 &amp; !ob1)</code>.
+</p>
+
+<p>
+We show that the answer is positive by passing this formula to
+<code>ltlfsynt</code>.  (Notice that in this formula, input and output variables
+start with <code>i</code> and <code>o</code> respectively, so <code>ltlfsynt</code> can tell them apart
+automatically.)
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlfsynt --semantics=Mealy -F counter2.ltlf --realizability
+</pre>
+</div>
+<pre class="example">
+REALIZABLE
+</pre>
+
+
+<p>
+This specification is realizable.
+</p>
+
+<p>
+Without the <code>--realizability</code> switch, <code>ltlfsynt</code> will additionally
+print a Mealy machine representing the controller, in the <a href="hoa.html">HOA format</a>.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlfsynt --semantics=Mealy -F counter2.ltlf
+</pre>
+</div>
+
+<pre class="example" id="org4b990f1">
+REALIZABLE
+HOA: v1
+States: 5
+Start: 0
+AP: 7 "init0" "init1" "inc" "ob0" "ob1" "oc1" "oc0"
+acc-name: all
+Acceptance: 0 t
+properties: trans-labels explicit-labels state-acc deterministic
+controllable-AP: 3 4 5 6
+--BODY--
+State: 0
+[!0&amp;!1&amp;!2&amp;!3&amp;!4&amp;!5&amp;!6 | !0&amp;!1&amp;2&amp;!3&amp;!4&amp;!5&amp;6 | !0&amp;1&amp;!2&amp;!3&amp;4&amp;!5&amp;!6 | 0&amp;!1&amp;!2&amp;3&amp;!4&amp;!5&amp;!6 | 0&amp;1&amp;!2&amp;3&amp;4&amp;!5&amp;!6] 1
+[!0&amp;1&amp;2&amp;!3&amp;4&amp;!5&amp;6] 2
+[0&amp;!1&amp;2&amp;3&amp;!4&amp;5&amp;6] 3
+[0&amp;1&amp;2&amp;3&amp;4&amp;5&amp;6] 4
+State: 1
+[!2&amp;!6 | 2&amp;6] 1
+State: 2
+[!2&amp;3&amp;4&amp;!5&amp;!6] 1
+[2&amp;3&amp;4&amp;5&amp;6] 4
+State: 3
+[!2&amp;!3&amp;4&amp;!5&amp;!6] 1
+[2&amp;!3&amp;4&amp;!5&amp;6] 2
+State: 4
+[!2&amp;!3&amp;!4&amp;!5&amp;!6 | 2&amp;!3&amp;!4&amp;!5&amp;6] 1
+--END--
+</pre>
+
+<p>
+We can hide the <code>REALIZABLE</code> line with <code>--hide</code>, and print the Mealy
+machine in GraphViz's format as follows:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlfsynt --semantics=Mealy -F counter2.ltlf --hide --dot=strategy
+</pre>
+</div>
+
+
+<div id="org0786163" class="figure">
+<p><object type="image/svg+xml" data="ltlfsyntexstrat.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+
+<p>
+Remember that unlike <a href="ltlsynt.html"><code>ltlsynt</code>,</a> we are working with finite semantics
+here.  The controller will read a sequence of input assignments of
+infinite size, but that sequence should have at least one position
+such that the combination of inputs and outputs up to that point
+satisfy the specification.  Once the specification has been satisfied,
+the controller is free to output anything.  This is why the values of
+<code>ob0</code>, <code>ob1</code>, <code>oc1</code> are not specified on the transition leaving the
+rightmost state: that state is reached either when the counter wrapped
+to zero, or when the input signals do not satisfy our assumption
+(<code>G(!inc -&gt; X[!]inc)</code>), so at that point the specification has been
+satisfied, and the output variable can be chosen freely.
+</p>
+
+<p>
+The reason we still force the value of <code>oc0</code> to be equal to that of
+<code>inc</code> on the last state is because of an optimization in <code>ltlfsynt</code>:
+since the specification contains <code>G(inc &lt;-&gt; oc0)</code>, the formula can be
+simplified by replacing all occurrences of <code>oc0</code> by <code>inc</code>.  <code>ltlfsynt</code>
+does this to reduce the number of variables it has to deal with, and
+only adds the <code>oc0</code> variable back at the very end, before presenting
+results.
+</p>
+
+<p>
+The controller may be output as an And-Inverter-Graph in <a href="http://fmv.jku.at/aiger/">AIGER format</a>
+using the <code>--aiger</code> option:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlfsynt --semantics=Mealy -F counter2.ltlf --aiger
+</pre>
+</div>
+
+<pre class="example" id="orgd4a0399">
+REALIZABLE
+aag 59 3 3 4 53
+2
+4
+6
+8 83
+10 109
+12 119
+25
+35
+45
+6
+14 10 13
+16 9 14
+18 9 13
+20 2 18
+22 3 16
+24 21 23
+26 8 14
+28 19 27
+30 4 29
+32 5 14
+34 31 33
+36 6 16
+38 6 18
+40 2 38
+42 3 36
+44 41 43
+46 10 12
+48 8 13
+50 9 47
+52 49 51
+54 11 13
+56 8 54
+58 9 11
+60 57 59
+62 6 61
+64 7 53
+66 63 65
+68 11 12
+70 9 68
+72 57 71
+74 6 73
+76 65 75
+78 4 77
+80 5 67
+82 79 81
+84 6 26
+86 9 54
+88 27 87
+90 6 89
+92 4 90
+94 5 84
+96 93 95
+98 4 84
+100 5 90
+102 99 101
+104 2 103
+106 3 97
+108 105 107
+110 4 38
+112 5 36
+114 111 113
+116 2 115
+118 43 117
+i0 init0
+i1 init1
+i2 inc
+o0 ob0
+o1 ob1
+o2 oc1
+o3 oc0
+</pre>
+
+<p>
+Here is a graphical representation of the And-Inverter Graph for this
+controller:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="orgd8fea8d">ltlfsynt --semantics=Mealy -F counter2.ltlf --hide --dot=aig
+</pre>
+</div>
+
+
+<div id="orgafe8aab" class="figure">
+<p><object type="image/svg+xml" data="ltlfsyntexaig.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+<p>
+The input signals are shown at the bottom in blue triangles.  The
+output signals are shown at that top in red triangles.  Three latches
+(1-bit registers), represented with orange rectangles are used to
+remember the state of the controller.  Latches are all <i>false</i>
+initially.  The <code>L*_out</code> nodes emit the current latch value, and the
+<code>L*_in</code> receive the value of the latch for the next step.  All round
+nodes correspond to binary AND gates.  Black dots invert a signal.
+</p>
+</div>
+</div>
+<div id="outline-container-org5a4c166" class="outline-2">
+<h2 id="org5a4c166">Invoking <code>ltlfsynt</code></h2>
+<div class="outline-text-2" id="text-org5a4c166">
+<p>
+The specification can be supplied in three ways:
+</p>
+
+<ul class="org-ul">
+<li>as an LTLf formula, supplied on the command-line: <code>-f formula</code>.</li>
+<li>as an LTLf formula, stored in a file: <code>-F FILENAME</code>.</li>
+<li>as a file in the <a href="https://arxiv.org/abs/2303.03839">TLSF v1.2 format</a>: <code>--tlsf FILENAME</code>.</li>
+</ul>
+
+<p>
+When receiving an LTLf formula with <code>-f</code> or <code>-F</code>, <code>ltlfilt</code> needs to
+know which atomic propositions are input or output.  This can be
+specified with options <code>--ins</code>, <code>--outs</code>, or with <code>--part-file</code>.  See
+<a href="ltlfsynt.html#input-options">ltlfsynt's documentation of those options</a>.  Without any such option,
+<code>ltlfsynt</code> assumes that variables starting with <code>i</code> are inputs, and
+those starting with <code>o</code> are output.
+</p>
+
+<p>
+Similarly, the semantics also have to be specified using
+<code>--semantics=Mealy</code> (the default) or <code>--semantics=Moore</code>.  When
+comparing <code>ltlfsynt</code> to other tools, beware that they may not
+have the same semantics by default.
+</p>
+
+<p>
+When the specification is passed as a TLSF file with the <code>--tlsf</code>
+option, the <a href="https://github.com/reactive-systems/syfco"><code>syfco</code></a> tool is automatically invoked to transform the
+specification into LTLf, to retrieve the lists of input/output
+variables, and to obtain the semantics to use.
+</p>
+</div>
+</div>
+<div id="outline-container-org5ceb60b" class="outline-2">
+<h2 id="org5ceb60b">Fine-tuning</h2>
+<div class="outline-text-2" id="text-org5ceb60b">
+<p>
+<code>ltlfsynt</code> operates in several phases as follows:
+</p>
+
+<ol class="org-ol">
+<li>Preprocess the specification.</li>
+<li>Translate the LTLf specification into two-player game.</li>
+<li>Solve the two-player game.</li>
+<li>Extract a winning strategy as a Mealy machine.</li>
+<li>Encode the Mealy machine in AIG.</li>
+</ol>
+
+<p>
+Steps 2 &amp; 3 are optionally merged together and performed on-the-fly.
+</p>
+</div>
+<div id="outline-container-org609f1f3" class="outline-3">
+<h3 id="org609f1f3">Preprocessing</h3>
+<div class="outline-text-3" id="text-org609f1f3">
+<p>
+Various optimizations are enabled by default.
+</p>
+
+<ul class="org-ul">
+<li>Variables that always appear with the same polarity in the
+specification can be changed into constants and removed from the
+specification.  This optimization can be disabled with
+<code>--polarity=no</code>.</li>
+<li>Group of variables that are specified as equivalent can be replaced
+by a unique variable of that group.  This can be disabled with
+<code>--global-equivalence=no</code>.</li>
+<li>A specification can be decomposed into multiple output-disjoint
+specifications that can be solved independently.  This decomposition
+can be disabled with <code>--decompose=no</code>.  (Currently this optimization
+has been restricted to X-free specification, because of <a href="https://gitlab.lre.epita.fr/spot/spot/-/issues/610">issue #610</a>.)</li>
+<li>The formula is simplified with some cheap rewriting rules.  This is
+especially important when decomposition is used, because the
+decomposition sometimes need to distribute subformulas to favor
+decompositions.  This can be disabled with <code>--simplify=no</code>.</li>
+</ul>
+
+<p>
+The easiest way to track what is going on with these options is to run
+<code>ltlfsynt</code> with the <code>--verbose</code> options.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlfsynt --semantics=Mealy -F counter2.ltlf --verbose --realizability
+</pre>
+</div>
+
+<pre class="example" id="org267e7da">
+using Mealy semantics
+the following signals can be temporarily removed:
+  oc0 := inc
+new formula: (init0 &lt;-&gt; ob0) &amp; (init1 &lt;-&gt; ob1) &amp; G((X[!]ob1 -&gt; (ob1 xor oc1)) &amp; (X[!]!ob1 -&gt; (ob1 &lt;-&gt; oc1))) &amp; (G(!inc -&gt; X[!]inc) -&gt; F(!ob0 &amp; !ob1)) &amp; G((X[!]ob0 -&gt; (inc xor ob0)) &amp; (X[!]!ob0 -&gt; (inc &lt;-&gt; ob0))) &amp; G(oc1 &lt;-&gt; (inc &amp; ob0))
+decomposition not attempted because the formula uses X
+formula simplified to (init0 &lt;-&gt; ob0) &amp; (init1 &lt;-&gt; ob1) &amp; (G(inc | X[!]inc) -&gt; F(!ob0 &amp; !ob1)) &amp; G((oc1 &lt;-&gt; (inc &amp; ob0)) &amp; ((ob1 xor oc1) | X!ob1) &amp; ((ob1 &lt;-&gt; oc1) | Xob1) &amp; ((inc xor ob0) | X!ob0) &amp; ((inc &lt;-&gt; ob0) | Xob0))
+starting on-the-fly translation with node-based backpropagation, with BFS order, with one-step preprocess
+translation to MTDFA (1 roots, 6 APs) took 0.00126905 seconds
+MTDFA game was solved during translation
+REALIZABLE
+</pre>
+
+<p>
+Here we see that the <code>oc0</code> was replaced by <code>inc</code> (such replacement
+occur because of <code>--global-equiv</code> is enabled by default), that the
+formula could not be decomposed (<code>--decompose=yes</code> is the default),
+and the result of <code>--simplify=yes</code> (the default) is shown before
+starting the translation.
+</p>
+</div>
+</div>
+<div id="outline-container-org364608a" class="outline-3">
+<h3 id="org364608a">Translation &amp; Game solving</h3>
+<div class="outline-text-3" id="text-org364608a">
+<p>
+By default, those two steps are combined and performed on-the-fly.
+This gives the best results.  <code>ltlfilt</code> supports alternative
+approaches.  In all approaches, the DFA that is constructed is
+represented using multi-terminal binary decision diagrams (MTBDD).
+</p>
+</div>
+<div id="outline-container-org504501e" class="outline-4">
+<h4 id="org504501e">Off-line approaches</h4>
+<div class="outline-text-4" id="text-org504501e">
+<p>
+In these approaches, first a DFA is built, then it is interpreted
+as a game and solved.  The why the DFA is built is controlled by
+the <code>--translation</code> option:
+</p>
+
+<ul class="org-ul">
+<li><code>--translation=full</code>: a full DFA is created for the input
+specification; this is a direct translation from LTLf to MTBDD-based
+DFA.</li>
+<li><code>--translation=compositional</code>: a full DFA is created for the input
+specification, but the translation is compositional.  The
+specification will be split on top-level Boolean operators, then
+subformulas will be translated separately, and finally the resulting
+automata will be combined.</li>
+<li><code>--translation=restricted</code> builds a restricted version
+of the DFA in which accepting states are replaced by accepting sinks.
+This is a direct translation as well.</li>
+</ul>
+
+<p>
+The <code>restricted</code> translation is always faster than the <code>full</code>
+translation.  The <code>compositional</code> translation is <i>usually</i> faster than
+the <code>full</code> translation as well (provided intermediate automata are
+minimized).  <code>restricted</code> is usually better than <code>compositional</code> on
+meaningful specifications, and <code>compositional</code> is often than
+<code>restricted</code> or specifications built from random combination
+specifications.
+</p>
+
+
+<p>
+The <a href="ltlf2dfa.html#MTDFA">MTDFA</a> (that Spot's name for MTBDD-encoded DFA) resulting from
+these translations, and that will be used directly as a reachability
+game, can be displayed with <code>--dot=game</code>.  Here is the output for the
+full translation (the compositional translation would give the same
+output on this example).  See <a href="ltlf2dfa.html#MTDFA">this page</a> if you need an introduction to
+MTDFAs.  The MTDFA is interpreted as a game in which round node are
+player by the environment, diamond nodes are played by the controller,
+and the controller want to force the game to reach an accepting state.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="orgc6862f6">ltlfsynt --trans=full --semantics=Mealy -F counter2.ltlf --hide --dot=game
+</pre>
+</div>
+
+
+<div id="org506dd95" class="figure">
+<p><object type="image/svg+xml" data="ltlfsyntexgame-full.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+
+<p>
+For comparison, here is MTDFA output by the <code>restricted</code> translation.
+Note how all accepting states have been merged into the true BDD node,
+and the game have been simplified already.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="org3cf90c6">ltlfsynt --trans=restrict --semantics=Mealy -F counter2.ltlf --hide --dot=game
+</pre>
+</div>
+
+
+<div id="org10bb993" class="figure">
+<p><object type="image/svg+xml" data="ltlfsyntexgame-rest.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+<p>
+In the above case, we are lucky that the result of this translation is
+already a strategy: each diamond node has exactly one child that is
+the false BDD node, so the strategy is to always take the other child.
+Generally, the result of the translation may not be a strategy; that
+will be computed in a second step.
+</p>
+
+<p>
+The automaton that has been built can be minimized.  This is controlled with
+the <code>--minimize=yes</code> and <code>--minimize=no</code> options.  By default,
+minimization is only turned on for <code>--translation=compositional</code>,
+because minimization is what makes the compositional translation fast.
+For other approaches, minimization is not recommended, because solving
+the unminimized automaton is faster than minimizing it.
+</p>
+
+<p>
+The MTBDD-based DFA is interpreted as a game that can be solved in two ways:
+</p>
+<ul class="org-ul">
+<li><code>--backprop=nodes</code>: solve the game by backpropagation at the level
+of the MTBDD nodes.  This is a linear algorithm.</li>
+<li><code>--backprop=states</code>: solve the game by backpropagation but at the
+level of the MTDFA states.  This uses less memory, but the algorithm
+may require quadratic time.</li>
+</ul>
+</div>
+</div>
+<div id="outline-container-orgc0d19b2" class="outline-4">
+<h4 id="orgc0d19b2">On-the-fly approaches</h4>
+<div class="outline-text-4" id="text-orgc0d19b2">
+<p>
+The DFA can be built on-the-fly.  This builds the equivalent of the "restricted"
+automaton from above and solves the game as it is constructed.
+</p>
+
+<p>
+The order in which states are explored can be controlled with
+<code>--translation=dfs</code> or <code>--translation=bfs</code>.
+</p>
+
+<p>
+The BFS on-the-fly translation is the default, because it had a very
+slight advantage over DFS in a benchmark we did.
+</p>
+
+<p>
+An extra optimization that is enabled by default in on-the-fly
+approaches is <i>one-step (un)realizability</i> where the formula &alpha;
+for the current step is rewritten into two formulas Boolean formulas
+\(\alpha_r\) and \(\alpha_u\) such that if \(\alpha_r\) is realizable then
+\(\alpha\) is realizable, and if \(\alpha_u\) is unrealizable, then
+\(\alpha\) is unrealizable.  There are some specifications where this
+optimization is a huge help.  Conversely, for some specifications
+where this does not help, this is just an unnecessary overhead.  You
+may disable it with <code>--one-step-preprocess=no</code>.
+</p>
+
+<p>
+The option <code>--dot=game</code> still works with on-the-fly approaches, but in
+that case it can only display the strategy that results from creating
+the game and solving it on-the-fly.  If this is combined with
+<code>--realizability</code> (discussed below), the strategy returned by the
+on-the-fly approach is simplified to true or false, so there is not
+much to see.
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org37467bd" class="outline-3">
+<h3 id="org37467bd">Realizability</h3>
+<div class="outline-text-3" id="text-org37467bd">
+<p>
+Use the <code>--realizability</code> to interrupts the process once the game has
+been solved.
+</p>
+
+<div class="note" id="org4d42ed3">
+<p>
+In addition to our test-suite, we have run <code>ltlfsynt --realizability</code>
+on <a href="https://github.com/SYNTCOMP/benchmarks/">benchmarks from the LTLf tracks of the Synthesis Competition</a>, and
+ensured that all results where consistent between various
+configurations of <code>ltlfsynt</code> and with several other LTLf realizability
+tools.
+</p>
+
+<p>
+In contrast, the generation of controllers in any form (HOA, AIG) has
+not yet been thoroughly tested and should be regarded as highly
+experimental.
+</p>
+
+</div>
+</div>
+</div>
+<div id="outline-container-org283c998" class="outline-3">
+<h3 id="org283c998">AIG encoding</h3>
+<div class="outline-text-3" id="text-org283c998">
+<p>
+<code>ltlfsynt</code> shares its AIG encoder with <code>ltlsynt</code>, so see <a href="ltlsynt.html#org22889b3"><code>ltlsynt</code>'s &#x2013;aiger option</a>.
+</p>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

@@ -7,17 +7,17 @@ Embedding formal reasoning trace in NL space using synthesized trace converted t
 
 ## Running the code 
 
-convert tlsf to ltl
+**convert tlsf to ltl**
 `docker run --rm -it -v "$PWD":/work scarlet-ltl syfco -f ltl -m fully robot_grid.tlsf > spec.ltl`
 
-get alphabet 
+**get alphabet**
 ``` bash
 # inputs and outputs from the TLSF (land on your host)
 docker run --rm -v "$PWD":/work -w /work scarlet-ltl syfco -ins  robot_grid.tlsf > ins.txt
 docker run --rm -v "$PWD":/work -w /work scarlet-ltl syfco -outs robot_grid.tlsf > outs.txt
 ```
 
-Make formulas.txt
+**Make formulas.txt**
 ``` bash
 # one-liners (bash/zsh)
 FORMULA="$(tr -d '\n' < spec.ltl | sed 's/^[[:space:]]*//')"
@@ -31,7 +31,7 @@ docker buildx build --memory=6g --shm-size=1g -t scarlet-ltl .
 ```
 
 ## Similar works 
-- [SchieldAgent](https://arxiv.org/abs/2503.22738) The embedding from rules seems to be some kind of alignment process
+- [ShieldAgent](https://arxiv.org/abs/2503.22738) The embedding from rules seems to be some kind of alignment process
 - [WebArena](https://webarena.dev) a realistic web env for building autonomous agents
 - [SweBench](https://arxiv.org/pdf/2310.06770) long horizon github code issue resolving
 - [Measuring AI ability to complete long tasks](https://arxiv.org/pdf/2503.14499v1)

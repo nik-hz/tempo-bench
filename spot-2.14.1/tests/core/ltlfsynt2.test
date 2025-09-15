@@ -1,0 +1,122 @@
+#! /bin/sh
+# -*- coding: utf-8 -*-
+# Copyright (C) by the Spot authors, see the AUTHORS file for details.
+#
+# This file is part of Spot, a model checking library.
+#
+# Spot is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Spot is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+# License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+. ./defs || exit 1
+
+set -e
+
+C='ltlfsynt --trans=comp'
+R='ltlfsynt --trans=rest'
+
+# Decomposed variants are temporary disabled because of issue #610.
+
+f='G(i1->Fo1)&G(o1<->X!o1)&G(i2->Fo2)&G(o2<->X!o2)'
+test 14 = `$C -f "$f" --decomp=no --dot=game | grep ' -> ' | wc -l`
+#test 20 = `$C -f "$f" --decomp=yes --dot=game | grep ' -> ' | wc -l`
+test 3 = `$C -f "$f" --decomp=no --dot=strat | grep ' -> ' | wc -l`
+test 3 = `$C -f "$f" --decomp=yes --dot=strat | grep ' -> ' | wc -l`
+test 6 = `$R -f "$f" --decomp=no --dot=game | grep ' -> ' | wc -l`
+#test 8 = `$R -f "$f" --decomp=yes --dot=game | grep ' -> ' | wc -l`
+
+# See issue #601 for the effect of decomposition on this AIGER
+test 3 = `$C -f "$f" --decomp=no --dot=aig | grep ' -> ' | wc -l`
+#test 4 = `$C -f "$f" --decomp=yes --dot=aig | grep ' -> ' | wc -l`
+
+run 0 ltlfsynt -f "$f" -H >out
+cat >expected <<EOF
+REALIZABLE
+HOA: v1
+States: 2
+Start: 0
+AP: 4 "i1" "i2" "o1" "o2"
+acc-name: all
+Acceptance: 0 t
+properties: trans-labels explicit-labels state-acc deterministic
+controllable-AP: 2 3
+--BODY--
+State: 0
+[2&3] 1
+State: 1
+[t] 1
+--END--
+EOF
+diff out expected
+
+run 0 ltlfsynt -f "$f" --aiger --hide-status >out
+cat >expected <<EOF
+aag 3 2 1 2 0
+2
+4
+6 1
+7
+7
+i0 i2
+i1 i1
+o0 o1
+o1 o2
+EOF
+diff out expected
+
+run 0 ltlfsynt -f "$f" -q >out
+: >expected
+diff out expected
+
+cat >ctr1.part <<EOF
+.inputs in ic
+.outputs ca c0
+EOF
+
+F='X[!]c0->ic&&(ic->X c0)&&(G(!in->X[!]in)->(X[!](G(X[!]ca->in&&'
+F=$F'(in->X ca)&&(X[!]c0->!(c0<->X[!]ca)&&(!(c0<->X ca)->X c0))))'
+F=$F'&&X[!](F(!c0))))'
+echo "$F" >ctr1.ltlf
+
+run 0 ltlfsynt -F ctr1.ltlf --part ctr1.part --real
+
+
+# Two formula based on Scutellà's counterexample.
+# They should be both realizable in any semantics.
+f1="o0&G((o1->!o0)&(o0|o1|o2|o3|o4)&(o2->(!o0&!o1))&(o3->(!o0&!o1&!o2))"
+f2="&(o4->(!o0&!o1&!o2&!o3))&(o1->Xo2)&(o3->Xo1)"
+f3="&(o2->((!o&Xo3)|(o&Xo4)))&(o0->((i&Xo3)|(!i&Xo1))))&Fo4"
+f3b="&(o2->((o&Xo3)|(!o&Xo4)))&(o0->((!i&Xo3)|(i&Xo1))))&Fo4"
+echo "$f1$f2$f3" > scutella.ltlf
+echo "$f1$f2$f3b" >> scutella.ltlf
+
+ltlfsynt --trans=dfs --hide -F scutella.ltlf > out.hoa
+ltlfsynt --trans=dfs --semantics=moore --hide -F scutella.ltlf >> out.hoa
+ltlfsynt --trans=bfs --hide -F scutella.ltlf >> out.hoa
+ltlfsynt --trans=bfs --semantics=moore --hide -F scutella.ltlf >> out.hoa
+ltlfsynt --trans=full --hide -F scutella.ltlf >> out.hoa
+ltlfsynt --trans=full --semantics=moore --hide -F scutella.ltlf >> out.hoa
+ltlfsynt --trans=full --backprop=states --hide -F scutella.ltlf >> out.hoa
+ltlfsynt --trans=full --backprop=states \
+         --semantics=moore --hide -F scutella.ltlf >> out.hoa
+autfilt out.hoa --stats=%s,%e > out.stats
+
+: >expected
+for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+do
+    echo 6,7 >>expected
+done
+diff out.stats expected
+
+# Out of the above 16 automata we expect 4 different ones.
+# One of each pair (formula, semantics).
+test 4 = `autfilt --uniq out.hoa -c`

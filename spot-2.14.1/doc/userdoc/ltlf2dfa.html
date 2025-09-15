@@ -1,0 +1,605 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en">
+<head>
+<!-- 2025-07-21 Mon 08:55 -->
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>=ltlf2dfa=</title>
+<meta name="author" content="root" />
+<meta name="description" content="Spot command-line tool for translating LTLf into deterministic finite automata" />
+<meta name="generator" content="Org Mode" />
+<style type="text/css">
+  #content { max-width: 60em; margin: auto; }
+  .title  { text-align: center;
+             margin-bottom: .2em; }
+  .subtitle { text-align: center;
+              font-size: medium;
+              font-weight: bold;
+              margin-top:0; }
+  .todo   { font-family: monospace; color: red; }
+  .done   { font-family: monospace; color: green; }
+  .priority { font-family: monospace; color: orange; }
+  .tag    { background-color: #eee; font-family: monospace;
+            padding: 2px; font-size: 80%; font-weight: normal; }
+  .timestamp { color: #bebebe; }
+  .timestamp-kwd { color: #5f9ea0; }
+  .org-right  { margin-left: auto; margin-right: 0px;  text-align: right; }
+  .org-left   { margin-left: 0px;  margin-right: auto; text-align: left; }
+  .org-center { margin-left: auto; margin-right: auto; text-align: center; }
+  .underline { text-decoration: underline; }
+  #postamble p, #preamble p { font-size: 90%; margin: .2em; }
+  p.verse { margin-left: 3%; }
+  pre {
+    border: 1px solid #e6e6e6;
+    border-radius: 3px;
+    background-color: #f2f2f2;
+    padding: 8pt;
+    font-family: monospace;
+    overflow: auto;
+    margin: 1.2em;
+  }
+  pre.src {
+    position: relative;
+    overflow: auto;
+  }
+  pre.src:before {
+    display: none;
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: 3px;
+    color: #555;
+    background-color: #f2f2f299;
+  }
+  pre.src:hover:before { display: inline; margin-top: 14px;}
+  /* Languages per Org manual */
+  pre.src-asymptote:before { content: 'Asymptote'; }
+  pre.src-awk:before { content: 'Awk'; }
+  pre.src-authinfo::before { content: 'Authinfo'; }
+  pre.src-C:before { content: 'C'; }
+  /* pre.src-C++ doesn't work in CSS */
+  pre.src-clojure:before { content: 'Clojure'; }
+  pre.src-css:before { content: 'CSS'; }
+  pre.src-D:before { content: 'D'; }
+  pre.src-ditaa:before { content: 'ditaa'; }
+  pre.src-dot:before { content: 'Graphviz'; }
+  pre.src-calc:before { content: 'Emacs Calc'; }
+  pre.src-emacs-lisp:before { content: 'Emacs Lisp'; }
+  pre.src-fortran:before { content: 'Fortran'; }
+  pre.src-gnuplot:before { content: 'gnuplot'; }
+  pre.src-haskell:before { content: 'Haskell'; }
+  pre.src-hledger:before { content: 'hledger'; }
+  pre.src-java:before { content: 'Java'; }
+  pre.src-js:before { content: 'Javascript'; }
+  pre.src-latex:before { content: 'LaTeX'; }
+  pre.src-ledger:before { content: 'Ledger'; }
+  pre.src-lisp:before { content: 'Lisp'; }
+  pre.src-lilypond:before { content: 'Lilypond'; }
+  pre.src-lua:before { content: 'Lua'; }
+  pre.src-matlab:before { content: 'MATLAB'; }
+  pre.src-mscgen:before { content: 'Mscgen'; }
+  pre.src-ocaml:before { content: 'Objective Caml'; }
+  pre.src-octave:before { content: 'Octave'; }
+  pre.src-org:before { content: 'Org mode'; }
+  pre.src-oz:before { content: 'OZ'; }
+  pre.src-plantuml:before { content: 'Plantuml'; }
+  pre.src-processing:before { content: 'Processing.js'; }
+  pre.src-python:before { content: 'Python'; }
+  pre.src-R:before { content: 'R'; }
+  pre.src-ruby:before { content: 'Ruby'; }
+  pre.src-sass:before { content: 'Sass'; }
+  pre.src-scheme:before { content: 'Scheme'; }
+  pre.src-screen:before { content: 'Gnu Screen'; }
+  pre.src-sed:before { content: 'Sed'; }
+  pre.src-sh:before { content: 'shell'; }
+  pre.src-sql:before { content: 'SQL'; }
+  pre.src-sqlite:before { content: 'SQLite'; }
+  /* additional languages in org.el's org-babel-load-languages alist */
+  pre.src-forth:before { content: 'Forth'; }
+  pre.src-io:before { content: 'IO'; }
+  pre.src-J:before { content: 'J'; }
+  pre.src-makefile:before { content: 'Makefile'; }
+  pre.src-maxima:before { content: 'Maxima'; }
+  pre.src-perl:before { content: 'Perl'; }
+  pre.src-picolisp:before { content: 'Pico Lisp'; }
+  pre.src-scala:before { content: 'Scala'; }
+  pre.src-shell:before { content: 'Shell Script'; }
+  pre.src-ebnf2ps:before { content: 'ebfn2ps'; }
+  /* additional language identifiers per "defun org-babel-execute"
+       in ob-*.el */
+  pre.src-cpp:before  { content: 'C++'; }
+  pre.src-abc:before  { content: 'ABC'; }
+  pre.src-coq:before  { content: 'Coq'; }
+  pre.src-groovy:before  { content: 'Groovy'; }
+  /* additional language identifiers from org-babel-shell-names in
+     ob-shell.el: ob-shell is the only babel language using a lambda to put
+     the execution function name together. */
+  pre.src-bash:before  { content: 'bash'; }
+  pre.src-csh:before  { content: 'csh'; }
+  pre.src-ash:before  { content: 'ash'; }
+  pre.src-dash:before  { content: 'dash'; }
+  pre.src-ksh:before  { content: 'ksh'; }
+  pre.src-mksh:before  { content: 'mksh'; }
+  pre.src-posh:before  { content: 'posh'; }
+  /* Additional Emacs modes also supported by the LaTeX listings package */
+  pre.src-ada:before { content: 'Ada'; }
+  pre.src-asm:before { content: 'Assembler'; }
+  pre.src-caml:before { content: 'Caml'; }
+  pre.src-delphi:before { content: 'Delphi'; }
+  pre.src-html:before { content: 'HTML'; }
+  pre.src-idl:before { content: 'IDL'; }
+  pre.src-mercury:before { content: 'Mercury'; }
+  pre.src-metapost:before { content: 'MetaPost'; }
+  pre.src-modula-2:before { content: 'Modula-2'; }
+  pre.src-pascal:before { content: 'Pascal'; }
+  pre.src-ps:before { content: 'PostScript'; }
+  pre.src-prolog:before { content: 'Prolog'; }
+  pre.src-simula:before { content: 'Simula'; }
+  pre.src-tcl:before { content: 'tcl'; }
+  pre.src-tex:before { content: 'TeX'; }
+  pre.src-plain-tex:before { content: 'Plain TeX'; }
+  pre.src-verilog:before { content: 'Verilog'; }
+  pre.src-vhdl:before { content: 'VHDL'; }
+  pre.src-xml:before { content: 'XML'; }
+  pre.src-nxml:before { content: 'XML'; }
+  /* add a generic configuration mode; LaTeX export needs an additional
+     (add-to-list 'org-latex-listings-langs '(conf " ")) in .emacs */
+  pre.src-conf:before { content: 'Configuration File'; }
+
+  table { border-collapse:collapse; }
+  caption.t-above { caption-side: top; }
+  caption.t-bottom { caption-side: bottom; }
+  td, th { vertical-align:top;  }
+  th.org-right  { text-align: center;  }
+  th.org-left   { text-align: center;   }
+  th.org-center { text-align: center; }
+  td.org-right  { text-align: right;  }
+  td.org-left   { text-align: left;   }
+  td.org-center { text-align: center; }
+  dt { font-weight: bold; }
+  .footpara { display: inline; }
+  .footdef  { margin-bottom: 1em; }
+  .figure { padding: 1em; }
+  .figure p { text-align: center; }
+  .equation-container {
+    display: table;
+    text-align: center;
+    width: 100%;
+  }
+  .equation {
+    vertical-align: middle;
+  }
+  .equation-label {
+    display: table-cell;
+    text-align: right;
+    vertical-align: middle;
+  }
+  .inlinetask {
+    padding: 10px;
+    border: 2px solid gray;
+    margin: 10px;
+    background: #ffffcc;
+  }
+  #org-div-home-and-up
+   { text-align: right; font-size: 70%; white-space: nowrap; }
+  textarea { overflow-x: auto; }
+  .linenr { font-size: smaller }
+  .code-highlighted { background-color: #ffff00; }
+  .org-info-js_info-navigation { border-style: none; }
+  #org-info-js_console-label
+    { font-size: 10px; font-weight: bold; white-space: nowrap; }
+  .org-info-js_search-highlight
+    { background-color: #ffff00; color: #000000; font-weight: bold; }
+  .org-svg { }
+</style>
+<link rel="stylesheet" type="text/css" href="spot.css" />
+</head>
+<body>
+<div id="org-div-home-and-up">
+ <a accesskey="h" href="tools.html"> UP </a>
+ |
+ <a accesskey="H" href="index.html"> HOME </a>
+</div><div id="content" class="content">
+<h1 class="title"><code>ltlf2dfa</code></h1>
+<div id="table-of-contents" role="doc-toc">
+<h2>Table of Contents</h2>
+<div id="text-table-of-contents" role="doc-toc">
+<ul>
+<li><a href="#MTDFA">Introduction to MTDFAs</a></li>
+<li><a href="#org4439c46">Output format issues</a></li>
+<li><a href="#org1662199">Inspecting the MTDFA</a></li>
+<li><a href="#org19d86e4">Disabling output</a></li>
+<li><a href="#org718320d">Algorithmic options</a></li>
+</ul>
+</div>
+</div>
+
+<div id="org5e5f799" class="figure">
+<p><object type="image/svg+xml" data="spot2.svg" class="org-svg" id="spotlogo">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+<p>
+This tool translates LTLf formulas (i.e., LTL interpreted over finite
+traces) into Deterministic Finite Automata with transition-based
+acceptance.
+</p>
+<div id="outline-container-MTDFA" class="outline-2">
+<h2 id="MTDFA">Introduction to MTDFAs</h2>
+<div class="outline-text-2" id="text-MTDFA">
+<p>
+Internally, the translation builds a DFA that is stored as an array of
+Multi-Terminal BDDs.  Such a structure is called MTDFA in Spot (for
+Multi-Terminal DFA).  It can be presented as follows:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="org134f256">ltlf2dfa --keep-names <span class="org-string">'G(q -&gt; Fr) | GFc'</span> --mtdfa-dot
+</pre>
+</div>
+
+
+<div id="org32ded84" class="figure">
+<p><object type="image/svg+xml" data="ltlf2dfa1.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+<p>
+The blue rectangles at the top of the diagram are not part of the
+Multi-Terminal BDDs: they are just giving a name to each BDD and can
+be interpreted as state names.  The magenta rectangles at the bottom
+are "terminals" labeled by destination states.
+</p>
+
+<p>
+A path going down from a blue rectangle to a magenta rectangle
+corresponds to a transition labeled by the Boolean conjunction
+specified by that path.  As usual in BDD diagrams, plain edges
+indicate that the variable above it is true, and edges are doted if
+the variable is false.  If the terminal is accepting, as indicated
+with a doubled enclosure, the automaton can accept after reading that
+transition.  In any case, the execution can continue from the blue
+state labeled with LTLf formula that was reached.
+</p>
+
+<p>
+That structure can be converted to a transition-based DFA where
+accepting transition are marked with a ⓿.  Any finite run is accepted
+if the last transition it went through is marked with ⓿.  Note that
+empty runs cannot be accepted.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="orgb4f067c">ltlf2dfa --keep-names <span class="org-string">'G(q -&gt; Fr) | GFc'</span> --dot=.A
+</pre>
+</div>
+
+
+<div id="org2f35f07" class="figure">
+<p><object type="image/svg+xml" data="ltlf2dfa2.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+
+<p>
+As a special optimization, the false and true LTLf formulas are represented in MTDFAs
+as the false and true BDDs constants.  Those are depicted as orange squares:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="orgcfff05a">ltlf2dfa --keep-names <span class="org-string">'a M b'</span> --mtdfa-dot
+</pre>
+</div>
+
+
+<div id="org976be6e" class="figure">
+<p><object type="image/svg+xml" data="ltlf2dfa3.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+<p>
+These false and true constants should be interpreted as rejecting and
+accepting sinks.  When representing the automaton in a more
+traditional way, we omit paths going to the rejecting sink.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="orgafabc63">ltlf2dfa --keep-names <span class="org-string">'a M b'</span> --dot=.A
+</pre>
+</div>
+
+
+<div id="org0195557" class="figure">
+<p><object type="image/svg+xml" data="ltlf2dfa4.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org4439c46" class="outline-2">
+<h2 id="org4439c46">Output format issues</h2>
+<div class="outline-text-2" id="text-org4439c46">
+<p>
+Spot currently has very limited support for DFAs, and does not know
+any format to represent these automata.  Currently, we can abuse the HOA format
+to write those DFAs as if they were transition-based Büchi automata.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlf2dfa --keep-names <span class="org-string">'a M b'</span> -H
+</pre>
+</div>
+
+<pre class="example" id="orgc98ed55">
+HOA: v1
+name: "a M b"
+States: 2
+Start: 0
+AP: 2 "a" "b"
+acc-name: Buchi
+Acceptance: 1 Inf(0)
+properties: trans-labels explicit-labels trans-acc deterministic
+--BODY--
+State: 0 "a M b"
+[!0&amp;1] 0
+[0&amp;1] 1 {0}
+State: 1 "1"
+[t] 1 {0}
+--END--
+</pre>
+
+<p>
+In fact, even if we print the automaton with <code>--dot</code> without the <code>A</code>
+option (that hides the acceptance condition), we can see that the above
+automaton is represented as a Büchi automaton:
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="orge050d1d">ltlf2dfa --keep-names <span class="org-string">'a M b'</span> --dot
+</pre>
+</div>
+
+
+<div id="orgfeaf7cd" class="figure">
+<p><object type="image/svg+xml" data="ltlf2dfa5.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+</div>
+</div>
+<div id="outline-container-org1662199" class="outline-2">
+<h2 id="org1662199">Inspecting the MTDFA</h2>
+<div class="outline-text-2" id="text-org1662199">
+<p>
+Two options allow studying the MTDFA: <code>--mtdfa-dot</code> and <code>--mtdfa-stats</code>.
+</p>
+
+<p>
+The former has already been used above, and prints the MTDFA in DOT format.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="orgdf089a5">ltlf2dfa --keep-names <span class="org-string">'a U b U c U d'</span> --mtdfa-dot
+</pre>
+</div>
+
+
+<div id="org799e4bc" class="figure">
+<p><object type="image/svg+xml" data="ltlf2dfa6.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+<p>
+For larger automata, it can be useful to stop tracking the name of
+states (do not use the <code>--keep-names</code> option).  In that case the
+terminals are simply numbered, and one should pay attention not to
+confuse the terminals 0 and 1 (in magenta rounded rectangles) with the
+constants 0 and 1 (in orange squares).
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh" id="org2bcaae8">ltlf2dfa <span class="org-string">'a U b U c U d'</span> --mtdfa-dot
+</pre>
+</div>
+
+
+<div id="org596a2b4" class="figure">
+<p><object type="image/svg+xml" data="ltlf2dfa7.svg" class="org-svg">
+Sorry, your browser does not support SVG.</object>
+</p>
+</div>
+
+
+<p>
+The <code>--mtdfa-stats</code> options replace the output by some statistics
+about the MTDFA.  By default, it just prints some statistics that
+can be obtained in constant time (after construction)
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlf2dfa <span class="org-string">'a U b U c U d'</span> --mtdfa-stats
+</pre>
+</div>
+
+<pre class="example">
+states: 3
+aps: 4
+BuDDy nodenum: 524288 (8192KB)
+BuDDy freenodes: 524241 (99.99%)
+BuDDy produced: 45
+BuDDy cachesize: 16384 (256KB * 6 = 1536KB)
+BuDDy hashsize: 524288 (2048KB)
+BuDDy gbcnum: 0
+</pre>
+
+
+<p>
+The first lines are about the automaton itself:
+</p>
+
+<ul class="org-ul">
+<li><code>states</code> is the number of blue nodes, i.e., the number of state in
+the automaton (not counting any sink state)</li>
+<li><code>ap</code> is the number of atomic proposition that were involved in the
+construction of the automaton (the automaton may use fewer in practice)</li>
+</ul>
+
+<p>
+The next lines, starting with BuDDy, give statistics about the BuDDy
+library's usage.  Those statistics are global, so if multiple automata
+are translated in a single run of <code>ltlf2dfa</code>, these statistics will
+likely be different if automata are translated one at a time.
+</p>
+
+<ul class="org-ul">
+<li><code>nodenum</code> is the total number of nodes currently allocated by the
+BuDDy library.  Each node occupies 16 bytes.  This number in
+enlarged as needed when BuDDy runs out of space, it is never
+decreased.</li>
+<li><code>freenodes</code> is the number of unused nodes.</li>
+<li><code>produced</code> is the total number of nodes ever produced (false and true
+are not counted).</li>
+<li><code>cachesize</code> is the size of each operation cache of BuDDy.  Each
+entry in a cache is 16 bytes, and BuDDy as 6 such caches.  The MTBDD
+operations needed to translate LTLf to DFA will allocate a couple
+additional temporary caches of that same size, but this is not
+accounted here.</li>
+<li><code>hashsize</code> is the size the BuDDy's hash table used to ensure
+unicity of nodes.  It needs only 4 bytes per entry.</li>
+<li><code>gbcnum</code> is the number of garbage collection performed by BuDDy
+since its initialization.</li>
+</ul>
+
+<p>
+With the <code>--mtdfs-stats=nodes</code> options, additional information about the
+node usage of the automaton is retrieved.  This requires a linear scan of
+the entire DAG.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlf2dfa <span class="org-string">'a U b U c U d'</span> --mtdfa-stats=nodes
+</pre>
+</div>
+
+<pre class="example" id="orgd3f98c5">
+states: 3
+aps: 4
+internal nodes: 7
+terminal nodes: 3
+constant nodes: 2 (false and true)
+total nodes: 12 (0KB)
+BuDDy nodenum: 524288 (8192KB)
+BuDDy freenodes: 524241 (99.99%)
+BuDDy produced: 45
+BuDDy cachesize: 16384 (256KB * 6 = 1536KB)
+BuDDy hashsize: 524288 (2048KB)
+BuDDy gbcnum: 0
+</pre>
+
+<ul class="org-ul">
+<li><code>internal nodes</code> is the number of white nodes in the above pictures</li>
+<li><code>terminal nodes</code> counts magenta nodes</li>
+<li><code>constants nodes</code> counts the orange nodes</li>
+<li><code>total nodes</code> is the sum of the above three.</li>
+</ul>
+
+<p>
+With <code>--mtdfa-stats=paths</code> we additionally count paths and edges.  This
+computation can be exponential in the number of atomic propositions.
+</p>
+
+<div class="org-src-container">
+<pre class="src src-sh">ltlf2dfa <span class="org-string">'a U b U c U d'</span> --mtdfa-stats=paths
+</pre>
+</div>
+
+<pre class="example" id="org29afd3d">
+states: 3
+aps: 4
+internal nodes: 7
+terminal nodes: 3
+constant nodes: 2 (false and true)
+total nodes: 12 (0KB)
+paths: 15
+edges: 9
+BuDDy nodenum: 524288 (8192KB)
+BuDDy freenodes: 524241 (99.99%)
+BuDDy produced: 45
+BuDDy cachesize: 16384 (256KB * 6 = 1536KB)
+BuDDy hashsize: 524288 (2048KB)
+BuDDy gbcnum: 0
+</pre>
+
+<ul class="org-ul">
+<li><code>paths</code> is the number of different paths leading from a blue node to
+a leave (excluding paths leading to the rejecting sink)</li>
+<li><code>edges</code> is the number of pairs (state, leaf) that are connected by a
+paths (again, paths leading to false rejecting sink are not considered)</li>
+</ul>
+
+<p>
+If we want to estimate the memory consumption of a MTDFA, each node
+(white, magenta, or orange) costs 16 bytes in BuDDy (four <code>int</code>), and
+each state (blue node) needs 4 bytes (one <code>int</code>).  This is ignoring
+the cost of storing state names if requested (an LTLf formula AST is
+stored as DAG in which subformulas are shared with other LTLf
+formulas)
+</p>
+</div>
+</div>
+<div id="outline-container-org19d86e4" class="outline-2">
+<h2 id="org19d86e4">Disabling output</h2>
+<div class="outline-text-2" id="text-org19d86e4">
+<p>
+The <code>--quiet</code> option computes the MTDFA and exit without printing
+anything.  This can be used for benchmarking the translation without
+the cost of printing the automaton, computing statistics on that
+automaton, or many even converting it to another automaton
+representation.
+</p>
+</div>
+</div>
+<div id="outline-container-org718320d" class="outline-2">
+<h2 id="org718320d">Algorithmic options</h2>
+<div class="outline-text-2" id="text-org718320d">
+<p>
+The <code>--translation</code> option can be used to select between two translation algorithms:
+</p>
+
+<ul class="org-ul">
+<li>With <code>--translation=direct</code>, the entire formula is translated
+directly.  The resulting MTDFA can only be minimized after the
+translation.</li>
+<li>With <code>--translation=compositional</code>, the formula is split according
+to the Boolean operators that appear above temporal operators.
+Maximal subformulas whose top-level operator is temporal are
+translated directly.  Then the resulting MTDFAs are combined
+according to the Boolean operator that are above it.  This approach
+gives the opportunity to minimize the intermediate MTDFAs before
+they get combined.</li>
+</ul>
+
+
+<p>
+Pass <code>--minimize=no</code> to turn off MTDFA minimization.
+</p>
+
+<p>
+The <code>--keep-names</code> option, already illustrated above, requests that
+every algorithm keeps track of a formula labeling each state.  The
+direct translation has to track those formulas anyway.  For
+minimization and compositions this requires some extra work and
+memory, but it is usually negligible compared to size of the
+automaton.
+</p>
+</div>
+</div>
+</div>
+</body>
+</html>

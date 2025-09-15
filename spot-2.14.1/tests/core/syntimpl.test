@@ -1,0 +1,84 @@
+#! /bin/sh
+# -*- coding: utf-8 -*-
+# Copyright (C) by the Spot authors, see the AUTHORS file for details.
+#
+# This file is part of Spot, a model checking library.
+#
+# Spot is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Spot is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+# License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# Check syntactic implication.
+
+. ./defs || exit 1
+
+
+cat >input <<EOF
+a,a | b,1,0,0
+Fa,F(a | b),1,0,0
+Ga,G(a | b),1,0,0
+GFa,GF(a | b),1,0,0
+GFa,GF(a | b),1,0,0
+Xa,X(b U a),1,0,0
+XXa,XX(b U a),1,0,0
+e R f,g U f,1,0,0
+X(a | b),X(a | b | c | d),1,0,0
+X(a | b) U (e R f),X(a | b | c | d) U (g U f),1,0,0
+1,1,1,1,0
+0,0,1,0,1
+a,1,1,1,0
+a,a,1,0,0
+a,!a,0,1,1
+!a,1,1,1,0
+a,a,1,0,0
+a & b,b,1,0,0
+a & b,a,1,0,0
+!a,a & b,0,0,1
+a,a & b,0,0,0
+a,!a | !b,0,1,0
+a,a | b,1,0,0
+b,a | b,1,0,0
+a | b,1,1,1,0
+a,b U a,1,0,0
+a,1,1,1,0
+a U b,1,1,1,0
+a,a,1,0,0
+a,1,1,1,0
+a R b,b,1,0,0
+a R b,1,1,1,0
+Xa,X(b U a),1,0,0
+X(a R b),Xb,1,0,0
+a U b,1 U b,1,0,0
+a R b,b,1,0,0
+b & (a U b),a U b,1,0,0
+a U b,c | (a U b),1,0,0
+Xa,XX(b U a),0,0,0
+XXa,X(b U a),0,0,0
+X(a | b),X(c | d | X(a | b)),0,0,0
+X(a | b) U (e R f),X(c | d | X(a | b)) U (g U f),0,0,0
+a,b,0,0,0
+a,b | c,0,0,0
+a | b,a,0,0,0
+a,a & c,0,0,0
+a & b,c,0,0,0
+a,a U b,0,0,0
+a,a R b,0,0,0
+a R b,a,0,0,0
+p2,p3 | G(p2 & p5),0,0,0
+!p3 & F(!p2 | !p5),!p2,0,0,0
+Xc W 0,Xc R b,0,0,0
+(b & c) W (a & b),a R b,1,0,0
+EOF
+
+run 0 ../syntimpl input > output
+diff input output

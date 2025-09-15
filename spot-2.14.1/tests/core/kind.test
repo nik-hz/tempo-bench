@@ -1,0 +1,144 @@
+#! /bin/sh
+# -*- coding: utf-8 -*-
+# Copyright (C) by the Spot authors, see the AUTHORS file for details.
+#
+# This file is part of Spot, a model checking library.
+#
+# Spot is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Spot is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+# or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public
+# License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+# Check for the constant_term visitor
+
+. ./defs || exit 1
+
+set -e
+
+cat >input<<EOF
+a,B&!xfLPSFsgopraOPRD
+a<->b,BxfLPSFsgopraOPRD
+!a,B&!xfLPSFsgopraOPRD
+!(a|b),B&xfLPSFsgopraOPRD
+F(a),&!xLPegopraOPRD
+G(a),&!xLPusopraOPRD
+a U b,&!xfLPgopraOPRD
+a U Fb,&!xLPegopraOPRD
+Ga U b,&!xLPopraPD
+1 U a,&!xfLPegopraOPRD
+a W b,&!xfLPsopraOPRD
+a W 0,&!xfLPusopraOPRD
+a M b,&!xfLPgopraOPRD
+a M 1,&!xfLPegopraOPRD
+a R b,&!xfLPsopraOPRD
+0 R b,&!xfLPusopraOPRD
+a R (b R (c R d)),&!xfLPsopraOPRD
+a U (b U (c U d)),&!xfLPgopraOPRD
+a W (b W (c W d)),&!xfLPsopraOPRD
+a M (b M (c M d)),&!xfLPgopraOPRD
+Fa -> Fb,xLPopraOPRD
+Ga -> Fb,xLPegopraOPRD
+Fa -> Gb,xLPusopraOPRD
+(Ga|Fc) -> Fb,xLPopraOPRD
+(Ga|Fa) -> Gb,xLPopraOPRD
+{a;c*;b}|->!Xb,&fPsopraOPRD
+{a;c*;b}|->X!b,&!fPsopraOPRD
+{a;c*;b}|->!Fb,&PsopraOPRD
+{a;c*;b}|->G!b,&!PsopraOPRD
+{a;c*;b}|->!Gb,&PraRD
+{a;c*;b}|->F!b,&!PraRD
+{a;c*;b}|->GFa,&!PraRD
+{a;c*;b}|->FGa,&!Pa
+{a[+];c[+];b*}|->!Fb,&PsopraOPRD
+{a*;c[+];b*}|->!Fb,&xPsopraOPRD
+{a[+];c*;b[+]}|->G!b,&!PsopraOPRD
+{a*;c[+];b[+]}|->!Gb,&PraRD
+{a[+];c*;b[+]}|->F!b,&!PraRD
+{a[+];c[+];b*}|->GFa,&!PraRD
+{a*;c[+];b[+]}|->FGa,&!Pa
+{a;c;b|(d;e)}|->!Xb,&fPFsgopraOPRD
+{a;c;b|(d;e)}|->X!b,&!fPFsgopraOPRD
+{a;c;b|(d;e)}|->!Fb,&PsopraOPRD
+{a;c;b|(d;e)}|->G!b,&!PsopraOPRD
+{a;c;b|(d;e)}|->!Gb,&PgopraOPRD
+{a;c;b|(d;e)}|->F!b,&!PgopraOPRD
+{a;c;b|(d;e)}|->GFa,&!PraRD
+{a;c;b|(d;e)}|->FGa,&!PpaPD
+{a[+] && c[+]}|->!Xb,&fPsopraOPRD
+{a[+] && c[+]}|->X!b,&!fPsopraOPRD
+{a[+] && c[+]}|->!Fb,&xPsopraOPRD
+{a[+] && c[+]}|->G!b,&!xPsopraOPRD
+{a[+] && c[+]}|->!Gb,&xPraRD
+{a[+] && c[+]}|->F!b,&!xPraRD
+{a[+] && c[+]}|->GFa,&!xPraRD
+{a[+] && c[+]}|->FGa,&!xPa
+{a;c*;b}<>->!Gb,&PgopraOPRD
+{a;c*;b}<>->F!b,&!PgopraOPRD
+{a;c*;b}<>->FGb,&!PpaPD
+{a;c*;b}<>->!GFb,&PpaPD
+{a;c*;b}<>->GFb,&!Pa
+{a;c*;b}<>->!FGb,&Pa
+{a*;c[+];b[+]}<>->!FGb,&Pa
+{a;c|d;b}<>->!Gb,&PgopraOPRD
+{a;c|d;b}<>->G!b,&!PsopraOPRD
+{a;c|d;b}<>->FGb,&!PpaPD
+{a;c|d;b}<>->!GFb,&PpaPD
+{a;c|d;b}<>->GFb,&!PraRD
+{a;c|d;_b}<>->!FGb,&PrRD
+# Equivalent to a&b&c&d
+{a:b:c:d}!,B&!xfLPSFsgopraOPRD
+a&b&c&d,B&!xfLPSFsgopraOPRD
+(Xa <-> XXXc) U (b & Fe),LPgopraOPRD
+(!X(a|X(!b))&(FX(g xor h)))U(!G(a|b)),LPegopraOPRD
+(!X(a|X(!b))&(GX(g xor h)))R(!F(a|b)),LPusopraOPRD
+(!X(a|X(!b))&(GX(g xor h)))U(!G(a|b)),LPeopraPD
+(!X(a|X(!b))&(FX(g xor h)))R(!F(a|b)),LPuopraRD
+(!X(a|X(!b))&(GX(g xor h)))U(!F(a|b)),LPpaPD
+(!X(a|X(!b))&(FX(g xor h)))R(!G(a|b)),LPraRD
+(!X(a|GXF(!b))&(FGX(g xor h)))U(!F(a|b)),LPpaPD
+(!X(a|GXF(!b))&(FGX(g xor h)))R(!F(a|b)),LPupa
+(!X(a|FXG(!b))&(GFX(g xor h)))R(!G(a|b)),LPraRD
+(!X(a|FXG(!b))&(GFX(g xor h)))U(!G(a|b)),LPera
+(!X(a|GXF(!b))&(FGX(g xor h)))U(!G(a|Fb)),LPepaPD
+(!X(a|GXF(!b))&(FGX(g xor h)))U(!F(a|Gb)),LPa
+(!X(a|FXG(!b))&(GFX(g xor h)))R(!F(a|Gb)),LPuraRD
+(!X(a|FXG(!b))&(GFX(g xor h)))R(!G(a|Fb)),LPa
+GFa M GFb,&!xLPeua
+FGa M FGb,&!xLPeupaPD
+Fa  M GFb,&!xLPera
+GFa W GFb,&!xLPeuraRD
+FGa W FGb,&!xLPeua
+Ga  W FGb,&!xLPupa
+Ga  W b,&!xLPsopraOPRD
+Fa  M b,&!xLPgopraOPRD
+{a;b*;c},&!fPsopraOPRD
+{a;b*;c}!,&!fPgopraOPRD
+# The negative normal form is {a;b*;c}[]->1
+!{a;b*;c}!,&fPsopraOPRD
+{a;b*;p112}[]->0,&!fPsopraOPRD
+!{a;b*;c.2},&!fPgoprOPRD
+!{a[+];b*;c[+]},&!fPgopraOPRD
+!{a[+];b*;c*},&!xfPgopraOPRD
+{a[+];b*;c[+]},&!fPsopraOPRD
+{a[+] && b || c[+]},&!fPsopraOPRD
+{a[+] && b[+] || c[+]},&!xfPsopraOPRD
+{p[+]:p[+]},&!xfPsoprlaOPRD
+(!p W Gp) | ({(!p[*];(p[+]:(p[*];!p[+])))[:*4][:+]}<>-> (!p W Gp)),&!xPplaPD
+{b[+][:*0..3]},&!fPsopraOPRD
+{a->c[*]},xfPsopraOPRD
+{(a[+];b*);c*}<>->d,&!xfPgopraOPRD
+{first_match(a[+];b*);c*}<>->d,&!fPgopraOPRD
+G(Ga U b),&!xLPura
+GFb & G(Ga R b),&!xLPuraRD
+EOF
+
+run 0 ../kind input

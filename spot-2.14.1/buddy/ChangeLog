@@ -1,0 +1,5 @@
+2025-07-21  Alexandre Duret-Lutz  <adl@lrde.epita.fr>
+
+	release spot 2.14.1
+
+	* NEWS, configure.ac, doc/org/setup.org: Bump version.
