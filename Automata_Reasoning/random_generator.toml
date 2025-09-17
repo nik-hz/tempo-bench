@@ -1,5 +1,5 @@
 [hoax]
-name = "Random hoax config"
+name = "hoax config"
 version = 1
 default-driver = "flip"
 

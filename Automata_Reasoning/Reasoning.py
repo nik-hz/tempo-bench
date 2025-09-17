@@ -1,6 +1,7 @@
 import re
 import sys
 
+
 def parse_hoa(filename):
     """Parse a causal HOA file into (APs, start_state, states)."""
     with open(filename) as f:
@@ -83,11 +84,11 @@ def matches(cond, valuation):
     for idx, val in valuation.items():
         token = str(idx)
         if val is True:
-            expr = re.sub(rf'\b{token}\b', "True", expr)
+            expr = re.sub(rf"\b{token}\b", "True", expr)
         elif val is False:
-            expr = re.sub(rf'\b{token}\b', "False", expr)
+            expr = re.sub(rf"\b{token}\b", "False", expr)
         else:
-            expr = re.sub(rf'\b{token}\b', "False", expr)
+            expr = re.sub(rf"\b{token}\b", "False", expr)
 
     expr = expr.replace("&", " and ").replace("|", " or ")
     try:
@@ -130,9 +131,11 @@ def run_reasoning_trace(causal_hoa_file, trace_file, effect_file, output_file="r
                 break
             else:
                 f.write(f"  Transition: {state} → {next_state} via [{cond}]\n")
-                f.write(f"  Interpretation: Because inputs "
-                        f"{{{', '.join(pretty_inputs) if pretty_inputs else '∅'}}} were true, "
-                        f"system caused outputs {{{', '.join(outputs) if outputs else '∅'}}}.\n")
+                f.write(
+                    f"  Interpretation: Because inputs "
+                    f"{{{', '.join(pretty_inputs) if pretty_inputs else '∅'}}} were true, "
+                    f"system caused outputs {{{', '.join(outputs) if outputs else '∅'}}}.\n"
+                )
                 state = next_state
 
 

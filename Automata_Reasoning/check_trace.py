@@ -19,7 +19,7 @@ with open("/Users/will/github/corp/examples/simple3/hoax_raw.txt", "r") as f:
         end = line.find("}")
         if start == -1 or end == -1:
             continue
-        raw = line[start+1:end].strip()
+        raw = line[start + 1 : end].strip()
         if raw:
             # Handle things like "'a', 'p2'" → [a, p2]
             present = {tok.strip().strip("'\"") for tok in raw.split(",")}
@@ -50,7 +50,7 @@ try:
         ["autfilt", hoa_file, f"--accept-word={spot_word}"],
         check=False,
         text=True,
-        capture_output=True
+        capture_output=True,
     )
     if result.returncode == 0:
         print("✅ Trace is ACCEPTED by automaton.")
