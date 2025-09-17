@@ -1,5 +1,5 @@
-# --- Stage 1: build syfco with system GHC + cabal (small & reliable)
-FROM debian:bookworm-slim AS syfco-builder
+# ---------- Stage 1 syfco builder ----------
+FROM debian:bullseye-slim AS syfco-builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -24,7 +24,7 @@ RUN wget http://www.lrde.epita.fr/dload/spot/spot-2.14.1.tar.gz && \
 # Get Hoax and have a better understanding of what the causality stuff is doing
 
 # ---------- Stage 3 runtime ----------
-FROM python:3.12-bullseye
+FROM python:3.12.3-slim-bookworm
 
 # base tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,7 +32,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Python deps
+RUN pip install --upgrade pip
 RUN pip install --no-cache-dir Scarlet-ltl==0.0.4 ltlf2dfa==1.0.1
+RUN pip install hoax-hoa-executor
+
+
+# ML deps
+
 
 # oh-my-zsh + powerlevel10k
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \

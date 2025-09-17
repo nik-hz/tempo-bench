@@ -1,6 +1,6 @@
 {
     "name": "reasoning_from_ltl",
-    "build": { "dockerfile": "Dockerfile", "context": ".." },
+    "build": { "dockerfile": "HOA.Dockerfile", "context": ".." },
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "mounts": [
         "source=${localWorkspaceFolder}/tlsf_specs,target=/specs,type=bind"
