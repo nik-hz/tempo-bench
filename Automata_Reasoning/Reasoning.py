@@ -1,10 +1,26 @@
+# -*- coding: utf-8 -*-
+"""
+Reasoning trace generation module for extracting causal explanations from traces.
+"""
+
+import os
 import re
 import sys
+from pathlib import Path
+from typing import Dict, List, Set, Tuple, Union
 
 
-def parse_hoa(filename):
-    """Parse a causal HOA file into (APs, start_state, states)."""
-    with open(filename) as f:
+def parse_hoa(hoa_file: Union[str, os.PathLike]) -> Tuple[List[str], int, Dict[int, List[Tuple[str, int]]]]:
+    """
+    Parse a causal HOA file into (APs, start_state, states).
+
+    Args:
+        hoa_file: Path to HOA file
+
+    Returns:
+        Tuple of (ap_names, start_state, states_dict)
+    """
+    with open(hoa_file, encoding="utf-8") as f:
         lines = f.readlines()
 
     ap_names = []
@@ -27,13 +43,27 @@ def parse_hoa(filename):
             cond = cond[1:].strip()
             target = int(target.strip())
             states[current_state].append((cond, target))
+
     return ap_names, start, states
 
 
-def parse_trace_file(trace_file):
-    """Split trace into time steps with literal valuations."""
-    with open(trace_file) as f:
+def parse_trace_file(trace_file: Union[str, os.PathLike]) -> List[List[str]]:
+    """
+    Split trace into time steps with literal valuations.
+
+    Args:
+        trace_file: Path to trace file
+
+    Returns:
+        List of steps, where each step is a list of literals
+    """
+    with open(trace_file, encoding="utf-8") as f:
         text = f.read().strip()
+
+    # Remove cycle notation if present
+    if "cycle{" in text:
+        text = text.split("cycle{")[0].rstrip(";")
+
     steps = text.split(";")
     parsed = []
     for step in steps:
@@ -42,17 +72,34 @@ def parse_trace_file(trace_file):
     return parsed
 
 
-def parse_effects(effect_file):
-    """Read effect.txt and return the set of APs that count as outputs."""
-    with open(effect_file) as f:
+def parse_effects(effect_file: Union[str, os.PathLike]) -> Set[str]:
+    """
+    Read effect.txt and return the set of APs that count as outputs.
+
+    Args:
+        effect_file: Path to effect file
+
+    Returns:
+        Set of output AP names
+    """
+    with open(effect_file, encoding="utf-8") as f:
         text = f.read().strip()
     # Expect format: <>(ap1)&<>(ap2)&...
     aps = re.findall(r"<>\(([^)]+)\)", text)
     return set(aps)
 
 
-def project_inputs(step, input_aps):
-    """Extract valuation for inputs from a full trace step."""
+def project_inputs(step: List[str], input_aps: List[str]) -> Dict[int, bool]:
+    """
+    Extract valuation for inputs from a full trace step.
+
+    Args:
+        step: List of literals in the step
+        input_aps: List of atomic propositions
+
+    Returns:
+        Dictionary mapping AP indices to boolean values
+    """
     vals = {}
     for idx, ap in enumerate(input_aps):
         if "!" + ap in step:
@@ -64,8 +111,17 @@ def project_inputs(step, input_aps):
     return vals
 
 
-def project_outputs(step, effect_aps):
-    """Extract outputs based only on effect_aps."""
+def project_outputs(step: List[str], effect_aps: Set[str]) -> List[str]:
+    """
+    Extract outputs based only on effect_aps.
+
+    Args:
+        step: List of literals in the step
+        effect_aps: Set of output AP names
+
+    Returns:
+        List of output APs that are true in this step
+    """
     outputs = []
     for lit in step:
         name = lit.replace("!", "")
@@ -74,8 +130,17 @@ def project_outputs(step, effect_aps):
     return outputs
 
 
-def matches(cond, valuation):
-    """Check if a condition like '!0&!1 | 2' matches a valuation dict."""
+def matches_condition(cond: str, valuation: Dict[int, bool]) -> bool:
+    """
+    Check if a condition like '!0&!1 | 2' matches a valuation dict.
+
+    Args:
+        cond: Condition string from HOA file
+        valuation: Dictionary mapping AP indices to boolean values
+
+    Returns:
+        True if condition matches, False otherwise
+    """
     if cond == "t":  # unconditional transition
         return True
 
@@ -98,13 +163,30 @@ def matches(cond, valuation):
         return False
 
 
-def run_reasoning_trace(causal_hoa_file, trace_file, effect_file, output_file="reasoning.txt"):
+def generate_reasoning_trace(
+    causal_hoa_file: Union[str, os.PathLike],
+    trace_file: Union[str, os.PathLike],
+    effect_file: Union[str, os.PathLike],
+    output_file: Union[str, os.PathLike] = "reasoning.txt"
+) -> None:
+    """
+    Generate a reasoning trace explaining causal relationships in the trace.
+
+    Args:
+        causal_hoa_file: Path to causal HOA file
+        trace_file: Path to trace file
+        effect_file: Path to effect specification file
+        output_file: Path to save reasoning trace
+    """
     input_aps, start_state, states = parse_hoa(causal_hoa_file)
     trace_steps = parse_trace_file(trace_file)
     effect_aps = parse_effects(effect_file)
 
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     state = start_state
-    with open(output_file, "w") as f:
+    with output_path.open("w", encoding="utf-8") as f:
         f.write("==== Reasoning Trace ====\n")
         for t, step in enumerate(trace_steps):
             inputs = project_inputs(step, input_aps)
@@ -113,7 +195,7 @@ def run_reasoning_trace(causal_hoa_file, trace_file, effect_file, output_file="r
             # --- transition matching ---
             next_state, cond = None, None
             for c, target in states[state]:
-                if matches(c, inputs):
+                if matches_condition(c, inputs):
                     next_state, cond = target, c
                     break
 
@@ -126,11 +208,11 @@ def run_reasoning_trace(causal_hoa_file, trace_file, effect_file, output_file="r
             f.write(f"  Outputs true: {', '.join(outputs) if outputs else '∅'}\n")
 
             if next_state is None:
-                f.write(f"  Transition: {state} → (no valid transition)\n")
+                f.write(f"  Transition: {state} -> (no valid transition)\n")
                 f.write(f"  Interpretation: No condition matched for inputs.\n")
                 break
             else:
-                f.write(f"  Transition: {state} → {next_state} via [{cond}]\n")
+                f.write(f"  Transition: {state} -> {next_state} via [{cond}]\n")
                 f.write(
                     f"  Interpretation: Because inputs "
                     f"{{{', '.join(pretty_inputs) if pretty_inputs else '∅'}}} were true, "
@@ -139,7 +221,12 @@ def run_reasoning_trace(causal_hoa_file, trace_file, effect_file, output_file="r
                 state = next_state
 
 
-if __name__ == "__main__":
+# For backward compatibility
+run_reasoning_trace = generate_reasoning_trace
+
+
+def main():
+    """Command-line interface for reasoning trace generation."""
     if len(sys.argv) != 4:
         print("Usage: python reasoning.py <causal.hoa> <trace.txt> <effect.txt>")
         sys.exit(1)
@@ -147,4 +234,10 @@ if __name__ == "__main__":
     causal_hoa_file = sys.argv[1]
     trace_file = sys.argv[2]
     effect_file = sys.argv[3]
-    run_reasoning_trace(causal_hoa_file, trace_file, effect_file)
+
+    generate_reasoning_trace(causal_hoa_file, trace_file, effect_file)
+    print("Reasoning trace generated successfully")
+
+
+if __name__ == "__main__":
+    main()
