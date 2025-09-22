@@ -12,19 +12,6 @@ RUN git clone --depth 1 https://github.com/reactive-systems/syfco.git /src/syfco
     && cabal update \
     && cabal v2-install --installdir=/out --overwrite-policy=always
 
-# ---------- Stage 2 spot builder ----------
-FROM python:3.12.3-bookworm as spot-builder
-RUN apt-get update && apt-get install -y --no-install-recommends\
-    build-essential pkg-config python3-dev bison flex g++ libpopt-dev libbdd-dev graphviz git wget && rm -rf /var/lib/apt/lists/*
-
-RUN wget http://www.lrde.epita.fr/dload/spot/spot-2.14.1.tar.gz && \
-    tar xzf spot-2.14.1.tar.gz && cd spot-2.14.1 && \
-    ./configure --prefix /usr/local && make -j"$(nproc)" && make install
-# && echo "==== Installed ====" \
-# && find /usr /usr/local /root/.local -maxdepth 3 -type f \( -name spot -o -name ltl2tgba -o -name ltlsynt -o -name autfilt \)
-
-# Get Hoax and have a better understanding of what the causality stuff is doing
-
 # ---------- Stage 3 runtime ----------
 FROM python:3.12.3-bookworm
 
@@ -47,11 +34,12 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master
 # bring syfco from builder
 COPY --from=syfco-builder /out/syfco /usr/local/bin/syfco
 
-# bring Spot executables over
-COPY --from=spot-builder /usr/local/bin/ltl2tgba /usr/bin/
-COPY --from=spot-builder /usr/local/bin/ltlsynt /usr/bin/
-COPY --from=spot-builder /usr/local/bin/autfilt /usr/bin/
-COPY --from=spot-builder /usr/local/lib/python3.12/site-packages/spot* \
-    /usr/local/lib/python3.12/dist-packages/
+# Build spot
+RUN wget http://www.lrde.epita.fr/dload/spot/spot-2.14.1.tar.gz && \
+    tar xzf spot-2.14.1.tar.gz && cd spot-2.14.1 && \
+    ./configure --prefix /usr && make -j"$(nproc)" && make install
+
+
+
 WORKDIR /tempo-rl
 CMD [ "zsh" ]

@@ -1,2 +1,7 @@
 dataset/
 tlsf_specs/
+
+# spec test files
+*.hoa
+*.tlsf
+*.trace

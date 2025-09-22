@@ -41,9 +41,7 @@ def extract_aps_from_hoa(hoa_file: Union[str, os.PathLike]) -> List[str]:
 
 
 def create_effect_file(
-    aps: List[str],
-    output_aps: List[str],
-    output_file: Union[str, os.PathLike]
+    aps: List[str], output_aps: List[str], output_file: Union[str, os.PathLike]
 ) -> None:
     """
     Create an effect file for corp based on output APs.
@@ -93,7 +91,7 @@ def validate_tools() -> List[str]:
     """
     import shutil
 
-    required_tools = ["ltlsynt", "hoax", "autfilt", "corp"]
+    required_tools = ["ltlsynt", "hoax", "autfilt"]
     missing_tools = []
 
     for tool in required_tools:
@@ -117,7 +115,6 @@ def get_tool_versions() -> dict:
         "ltlsynt": ["--version"],
         "hoax": ["--version"],
         "autfilt": ["--version"],
-        "corp": ["--version"]
     }
 
     versions = {}
@@ -125,13 +122,10 @@ def get_tool_versions() -> dict:
         if shutil.which(tool):
             try:
                 result = subprocess.run(
-                    [tool] + version_args,
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    [tool] + version_args, capture_output=True, text=True, timeout=5
                 )
                 if result.returncode == 0:
-                    versions[tool] = result.stdout.strip().split('\n')[0]
+                    versions[tool] = result.stdout.strip().split("\n")[0]
                 else:
                     versions[tool] = "version unknown"
             except (subprocess.TimeoutExpired, subprocess.CalledProcessError, OSError):
