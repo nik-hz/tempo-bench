@@ -1,5 +1,8 @@
+.claude/
+
 dataset/
 tlsf_specs/
+*.tar.gz
 
 # spec test files
 *.hoa

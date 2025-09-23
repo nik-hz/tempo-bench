@@ -5,6 +5,9 @@ Authors: Nikolaus Holzer, Will Fishell
 Date: September 2025 
 
 Pipeline to convert a tlsf input file into hoa and run clis to extract reasoning traces
+
+NOTES:
+If we give it a lot of traces, it can figure out the legal transitions
 '
 
 
@@ -83,12 +86,12 @@ clean_rawhoa() {
     sed -E "s/${pattern}/${replacement}/g"
 }
 
-
 : '
 ########################################
 Environment variables
 ########################################
 '
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FILENAME=$(echo "$1" | cut -d'.' -f1)
 TRACE_FILE="$FILENAME".trace
@@ -118,6 +121,25 @@ then
 else 
     echo "Pass."
 fi
+
+# causal temporal stuff is pretty simple. 
+: '
+Output of size n
+you will have n instantiations of each output, and at each step you check the truth value
+
+get tlsf outputs, save in list
+
+for output in outputs:
+    for timestep in trace:
+        check truth value for output in timestep - if its true in that timestep return true, if its false return false
+
+        run corp.py, pass in system.hoa, effect.txt, trace and it returns a result.hoa
+
+There might be some nondeterminsim, but this forces det. We read the trace how it should be
+'
+
+
+
 
 # autfilt output
 # effect.txt whatever the cause is affecting written as a temporal logic thing

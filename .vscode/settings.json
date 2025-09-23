@@ -1,3 +1,4 @@
 {
-    "workbench.colorTheme": "Dracula Theme"
+    "workbench.colorTheme": "Dracula Theme",
+    "r.lsp.promptToInstall": false
 }
