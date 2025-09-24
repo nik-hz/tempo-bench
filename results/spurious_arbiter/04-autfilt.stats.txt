@@ -1,1 +1,0 @@
-46 states, 166 edges, 0 acc-sets, 16 SCCs, det=1
