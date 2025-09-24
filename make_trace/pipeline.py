@@ -8,17 +8,25 @@ Pipeline to convert a tlsf input file into hoa and run clis to extract reasoning
 NOTES:
 If we give it a lot of traces, it can figure out the legal transitions
 """
-
+import os
 import subprocess
 import re
 from pathlib import Path
+import logging
 
+logging.basicConfig(level=logging.ERROR)
+    
+os.environ["PATH"] = "/usr/local/bin:" + os.environ["PATH"]
+os.environ["LD_LIBRARY_PATH"] = "/usr/local/lib:" + os.environ.get("LD_LIBRARY_PATH", "")
 
 def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
     """Run ltlsynt on a TLSF file, strip the first line, and save HOA."""
     cmd = ["ltlsynt", "--tlsf", str(tlsf_file)]
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    # Drop first line (like `tail -n +2`)
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except Exception as e:
+        logging.error(f"Error: {e}")
+    # Drop first line 
     lines = res.stdout.splitlines()[1:]
     hoa_file.write_text("\n".join(lines))
 
@@ -40,8 +48,13 @@ def make_replacement(aps):
 
 def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
     """Run hoax with config, clean its output, and save result."""
+    print(config_file)
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    except Exception as e:
+        logging.error(f"Error: {e}") 
 
     # Drop last line (like `sed '$d'`)
     lines = res.stdout.strip().splitlines()[:-1]
@@ -73,7 +86,7 @@ def run_autfilt_stats(hoa_file: Path, stats_file: Path):
     with open(stats_file, "w") as f:
         subprocess.run(
             ["autfilt", "--stats=%s states, %e edges, %a acc-sets, %c SCCs, det=%d"],
-            input=hoa_file.read_bytes(),
+            input=hoa_file.read_text(),
             text=True,
             stdout=f,
             check=True,
@@ -131,12 +144,13 @@ def pipeline(tlsf_file: str, config_file: str):
     }
 
 
+# This should just run from main.py
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 2:
-        print("Usage: pipeline.py <spec.tlsf>")
+    if len(sys.argv) < 3:
+        print("Usage: pipeline.py <spec.tlsf> <config.toml>")
         sys.exit(1)
 
-    result = pipeline(sys.argv[1], "pipeline_configs.toml")
+    result = pipeline(sys.argv[1], sys.argv[2])
     print(result)

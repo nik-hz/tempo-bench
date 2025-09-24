@@ -12,10 +12,10 @@ from .pipeline import pipeline
 
 if __name__ == "__main__":
     import sys
-    
-    if len(sys.argv) < 2:
-        print("Usage: pipeline.py <spec.tlsf>")
-        sys.exit(1)
 
-    result = pipeline(sys.argv[1], "pipeline_configs.toml")
+    if len(sys.argv) < 3:
+        print("Usage: pipeline.py <spec.tlsf> <config.toml>")
+        sys.exit(1)
+        
+    result = pipeline(sys.argv[1], sys.argv[2])
     print(result)

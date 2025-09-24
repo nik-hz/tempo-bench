@@ -8,13 +8,17 @@
             "name": "Python: pipeline.py with args",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/automata_reasoning/pipeline.py",
+            "program": "make_trace/pipeline.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "${workspaceFolder}/automata_reasoning/output/input.tlsf",
-                "${workspaceFolder}/automata_reasoning/pipeline_configs.toml"
-            ]
+                "${workspaceFolder}/tlsf_specs/spurious_arbiter.tlsf",
+                "${workspaceFolder}/random_config.toml"
+            ],
+            "env": {
+                "PATH": "/usr/local/bin:${env:PATH}",
+                "LD_LIBRARY_PATH": "/usr/local/lib:${env:LD_LIBRARY_PATH}"
+            }
         }
     ]
 }
