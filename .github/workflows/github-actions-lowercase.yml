@@ -17,6 +17,9 @@ jobs:
 
       - name: Find uppercase filenames
         run: |
+          # go to github root
+          cd "${GITHUB_WORKSPACE}"
+          
           # List files with uppercase letters
           candidates=$(git ls-files | grep '[A-Z]')
 
