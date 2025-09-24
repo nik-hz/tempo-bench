@@ -8,16 +8,25 @@ Pipeline to convert a tlsf input file into hoa and run clis to extract reasoning
 NOTES:
 If we give it a lot of traces, it can figure out the legal transitions
 """
+
 import os
 import subprocess
 import re
 from pathlib import Path
 import logging
+import sys, getopt
+
+
+# local imports to abstract away the corp call
+# import parse
+# import spot
+# import cause
 
 logging.basicConfig(level=logging.ERROR)
-    
+
 os.environ["PATH"] = "/usr/local/bin:" + os.environ["PATH"]
 os.environ["LD_LIBRARY_PATH"] = "/usr/local/lib:" + os.environ.get("LD_LIBRARY_PATH", "")
+
 
 def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
     """Run ltlsynt on a TLSF file, strip the first line, and save HOA."""
@@ -26,7 +35,7 @@ def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
         res = subprocess.run(cmd, capture_output=True, text=True, check=True)
     except Exception as e:
         logging.error(f"Error: {e}")
-    # Drop first line 
+    # Drop first line
     lines = res.stdout.splitlines()[1:]
     hoa_file.write_text("\n".join(lines))
 
@@ -50,11 +59,11 @@ def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
     """Run hoax with config, clean its output, and save result."""
     print(config_file)
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
-    
+
     try:
         res = subprocess.run(cmd, capture_output=True, text=True, check=True)
     except Exception as e:
-        logging.error(f"Error: {e}") 
+        logging.error(f"Error: {e}")
 
     # Drop last line (like `sed '$d'`)
     lines = res.stdout.strip().splitlines()[:-1]
@@ -101,6 +110,41 @@ def run_autfilt_accept(hoa_file: Path, trace: str, output_file: Path):
     return res.returncode == 0
 
 
+# TODO implement the proposition stuff with spot outputs
+def extract_effects(
+    tlsf_file: Path,
+    trace_file: Path,
+    effects_file: Path,
+    outputs_file: Path,
+):
+    """Extracts the output parameters of the tlsf file."""
+
+    # run syfco to get outputs
+    cmd = ["syfco", tlsf_file, "-outs"]
+    try:
+        res = subprocess.run(cmd, capture_output=True)
+    except Exception as e:
+        logging.error(f"Error: {e}")
+
+    output_params = res.stdout.decode("utf-8").strip().split(",")
+    outputs_file.write_text(res.stdout.decode("utf-8"))
+
+    # NOTE there may be some better way of doing this, but it should be O(N)
+    indexed_trace = [s.split("&") for s in trace_file.read_text().strip().split(";")[:-1]]
+
+    effects_str = ""
+    effects_arr = []
+    for i, params in enumerate(indexed_trace):
+        for output in output_params:  # is O(N) output params fixed
+            if output in params:
+                effects_str += f"{'X'*i} {output}\n"
+                effects_arr.append(f"{'X'*i} {output}\n")
+
+    effects_file.write_text(effects_str)
+
+    return effects_arr
+
+
 def pipeline(tlsf_file: str, config_file: str):
     tlsf_path = Path(tlsf_file)
     base = tlsf_path.stem
@@ -114,6 +158,9 @@ def pipeline(tlsf_file: str, config_file: str):
     trace_file = results_dir / "03-trace.spot.txt"
     stats_file = results_dir / "04-autfilt.stats.txt"
     accepted_file = results_dir / "05-autfilt.accepted.hoa"
+    effects_file = results_dir / "06-effects.txt"
+    outputs_file = results_dir / "07-outputs.txt"
+    causal_file = results_dir / "08-causal.hoa"
     log_file = results_dir / "acceptance.log"
 
     print(f"[+] Running ltlsynt on {tlsf_file}")
@@ -133,9 +180,12 @@ def pipeline(tlsf_file: str, config_file: str):
 
     print("[+] Checking acceptance")
     accepted = run_autfilt_accept(hoa_file, trace, accepted_file)
-        
+
     with open(log_file, "w") as f:
         f.write("Pass.\n" if accepted else "Did not pass.\n")
+
+    print("[+] Checking causality")
+    effects = extract_effects(tlsf_file, trace_file, effects_file, outputs_file)
 
     return {
         "aps": aps,

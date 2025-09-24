@@ -1,0 +1,3 @@
+X g_0
+XXXX g_0
+XXXXXX g_0
