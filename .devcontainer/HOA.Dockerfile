@@ -1,5 +1,5 @@
-# ---------- Stage 1 syfco builder ----------
-FROM debian:bullseye-slim AS syfco-builder
+# ---------- Stage 1: syfco builder ----------
+FROM debian:bookworm AS syfco-builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -12,45 +12,57 @@ RUN git clone --depth 1 https://github.com/reactive-systems/syfco.git /src/syfco
     && cabal update \
     && cabal v2-install --installdir=/out --overwrite-policy=always
 
-# ---------- Stage 2 spot builder ----------
-FROM debian:bullseye-slim as spot-builder
-RUN apt-get update && apt-get install -y --no-install-recommends\
-    build-essential pkg-config python3-dev bison flex g++ libpopt-dev libbdd-dev graphviz git wget && rm -rf /var/lib/apt/lists/*
-RUN wget http://www.lrde.epita.fr/dload/spot/spot-2.14.1.tar.gz && \
-    tar xzf spot-2.14.1.tar.gz && cd spot-2.14.1 && \
-    ./configure --prefix=/usr && make -j"$(nproc)" && make install
 
+# ---------- Stage 2: spot builder ----------
+FROM python:3.12.3-bookworm AS spot-builder
 
-# Get Hoax and have a better understanding of what the causality stuff is doing
-
-# ---------- Stage 3 runtime ----------
-FROM python:3.12.3-slim-bookworm
-
-# base tools
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    mona graphviz ca-certificates zsh curl git wget gnupg && \
-    rm -rf /var/lib/apt/lists/*
+    build-essential g++ make automake libtool pkg-config bison flex swig \
+    python3-dev python3-pip wget ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Python deps
-RUN pip install --upgrade pip
-RUN pip install --no-cache-dir Scarlet-ltl==0.0.4 ltlf2dfa==1.0.1
-RUN pip install hoax-hoa-executor
+# spot version and checksum 
+ENV SPOT_VERSION=2.14.1
+ENV SPOT_SHA256=25df8a6af4e4bb3ae67515ac98e3d37c4303a682e33aaa66e72d74b39459a530
+
+# Build Spot from source
+WORKDIR /src
+RUN wget http://www.lre.epita.fr/dload/spot/spot-2.14.1.tar.gz \
+    && echo "${SPOT_SHA256}  spot-${SPOT_VERSION}.tar.gz" | sha256sum -c - \
+    && tar xzf spot-${SPOT_VERSION}.tar.gz \
+    && cd spot-${SPOT_VERSION} \
+    && ./configure --prefix=/usr/local --enable-python --enable-tools \
+    && make -j"$(nproc)" && make install
 
 
-# ML deps
+# ---------- Stage 3: runtime ----------
+FROM python:3.12.3-bookworm
 
+# Base tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    mona graphviz ca-certificates zsh curl git gnupg \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python deps (cache-friendly with requirements.txt)
+COPY requirements.txt .
+RUN python3 -m pip install --upgrade pip \
+    && python3 -m pip install --no-cache-dir -r requirements.txt
 
 # oh-my-zsh + powerlevel10k
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \
     && git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
     ${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/themes/powerlevel10k
 
-
-# bring syfco from builder
+# Copy syfco binary from builder
 COPY --from=syfco-builder /out/syfco /usr/local/bin/syfco
-COPY --from=spot-builder /usr/bin/ltl2tgba /usr/bin/
-COPY --from=spot-builder /usr/bin/autfilt /usr/bin/
-COPY --from=spot-builder /usr/lib /usr/lib
 
-WORKDIR /app
+# Copy Spot binaries + Python bindings
+COPY --from=spot-builder /usr/local /usr/local
+
+# Ensure runtime can find libspot
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+WORKDIR /tempo-rl
 CMD [ "zsh" ]

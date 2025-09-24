@@ -1,4 +1,10 @@
-Scarlet/
-bench_out/
-spot-*/
+.claude/
 
+dataset/
+tlsf_specs/
+*.tar.gz
+
+# spec test files
+*.hoa
+*.tlsf
+*.trace

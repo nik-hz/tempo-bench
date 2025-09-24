@@ -1,3 +1,4 @@
 {
-    "workbench.colorTheme": "Default High Contrast"
+    "workbench.colorTheme": "Dracula Theme",
+    "r.lsp.promptToInstall": false
 }

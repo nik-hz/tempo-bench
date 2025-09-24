@@ -1,20 +1,26 @@
 {
     "name": "reasoning_from_ltl",
-    "build": { "dockerfile": "HOA.Dockerfile", "context": ".." },
+    // "build": { "dockerfile": "HOA.Dockerfile", "context": ".." },
+    "image": "nik101010/tempo-rl:latest",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "mounts": [
-        "source=${localWorkspaceFolder}/tlsf_specs,target=/specs,type=bind"
+        "source=${localWorkspaceFolder}/tlsf_specs,target=/specs,type=bind",
+        "source=${env:SSH_AUTH_SOCK},target=/ssh-agent,type=bind"
     ],
-    "containerEnv": {
-        "GITHUB_TOKEN": "${localEnv:GITHUB_TOKEN}",
-        "GITHUB_USER": "${localEnv:GITHUB_USER}"
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli:1": {}
     },
     "settings": {
         "python.defaultInterpreterPath": "/usr/local/bin/python",
         "editor.tabSize": 4,
         "terminal.integrated.defaultProfile.linux": "zsh"
     },
-    "extensions": ["ms-python.python", "ms-python.debugpy"],
+    "extensions": [
+        "ms-python.python",
+        "ms-python.debugpy",
+        "github.vscode-pull-request-github",
+        "vscodevim.vim",
+    ],
     "overrideCommand": true,
     "postCreateCommand": "chsh -s /usr/bin/zsh"
 }
