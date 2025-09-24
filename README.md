@@ -118,6 +118,10 @@ Using the above, you can then run and explore the provided notebook in a browser
 python3 -m notebook
 ```
 
+
+# NOTES 
+use a domain specific language, or be aware that noisy channel, twmporal to NL via LLM is not deterministic anymore due to the nature of NL
+
 ## Literature
 
 [1] Synthesis of Temporal Causality. Bernd Finkbeiner, Hadar Frenkel, Niklas Metzger and Julian Siber. CAV 2024.

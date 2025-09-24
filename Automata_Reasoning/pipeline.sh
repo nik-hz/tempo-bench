@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 : '
 Automata pipeline
-Authors: Nikolaus Holzer, Will Fishell
 Date: September 2025 
 
 Pipeline to convert a tlsf input file into hoa and run clis to extract reasoning traces

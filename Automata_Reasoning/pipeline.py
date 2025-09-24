@@ -1,124 +1,142 @@
 """
 Automata pipeline
 Authors: Nikolaus Holzer, Will Fishell
-Date: September 2025 
+Date: September 2025
 
 Pipeline to convert a tlsf input file into hoa and run clis to extract reasoning traces
 
 NOTES:
 If we give it a lot of traces, it can figure out the legal transitions
 """
+
+import subprocess
 import re
 from pathlib import Path
-import spot
-import hoax
 
 
-def parse_tlsf(tlsf_file: str):
-    """
-    Minimal TLSF parser: extract INPUTS, OUTPUTS, and the formula.
-    This assumes a standard TLSF structure.
-    """
-    content = Path(tlsf_file).read_text()
-
-    # Extract INPUTS { ... }
-    inputs_match = re.search(r"INPUTS\s*{([^}]*)}", content, re.MULTILINE)
-    outputs_match = re.search(r"OUTPUTS\s*{([^}]*)}", content, re.MULTILINE)
-    formula_match = re.search(r"FORMULA\s*{([^}]*)}", content, re.MULTILINE | re.DOTALL)
-
-    inputs = []
-    outputs = []
-    formula = None
-
-    if inputs_match:
-        inputs = [tok.strip(" ;\n\r\t") for tok in inputs_match.group(1).split(",") if tok.strip()]
-    if outputs_match:
-        outputs = [
-            tok.strip(" ;\n\r\t") for tok in outputs_match.group(1).split(",") if tok.strip()
-        ]
-    if formula_match:
-        formula = formula_match.group(1).strip()
-
-    return inputs, outputs, formula
+def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
+    """Run ltlsynt on a TLSF file, strip the first line, and save HOA."""
+    cmd = ["ltlsynt", "--tlsf", str(tlsf_file)]
+    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    # Drop first line (like `tail -n +2`)
+    lines = res.stdout.splitlines()[1:]
+    hoa_file.write_text("\n".join(lines))
 
 
-def synthesize_from_tlsf_formula(formula_str: str):
-    """Translate TLSF formula into a Spot automaton."""
-    f = spot.formula(formula_str)
-    aut = spot.translate(f)
-    return aut
+def extract_aps(hoa_file: Path):
+    """Extract atomic propositions from line 4 of the HOA file."""
+    with open(hoa_file) as f:
+        for i, line in enumerate(f, start=1):
+            if i == 4:
+                return re.findall(r'"([^"]+)"', line)
+    return []
 
 
-def extract_aps(aut: spot.automaton):
-    """Extract atomic propositions from a Spot automaton."""
-    return [str(ap) for ap in aut.ap()]
+def make_replacement(aps):
+    """Build replacement string for empty set() in hoax output."""
+    parts = [f"'!{ap}'" for ap in aps]
+    return "{" + ", ".join(parts) + "}"
 
 
-def run_hoax(aut: spot.automaton, config_file: str):
-    """Run Hoax executor directly from Python (using bindings)."""
-    executor = hoax.Executor(aut, config_file=config_file)
-    # This depends on hoax API — assume generate() returns a list of sets of APs
-    raw_traces = executor.generate()
-    return raw_traces
+def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
+    """Run hoax with config, clean its output, and save result."""
+    cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
+    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+
+    # Drop last line (like `sed '$d'`)
+    lines = res.stdout.strip().splitlines()[:-1]
+    content = "\n".join(lines)
+
+    # Replace set() with {!ap...}
+    replacement = make_replacement(aps)
+    content = re.sub(r"set\(\)", replacement, content)
+
+    hoax_file.write_text(content)
 
 
-def clean_and_generate_trace(raw_traces, aps):
-    """Convert Hoax raw traces into a Spot word string."""
+def generate_trace(hoax_file: Path, aps):
+    """Generate trace string from hoax output (Spot word)."""
     trace = []
-    for step in raw_traces:
-        assignment = []
-        for ap in aps:
-            if ap in step:
-                assignment.append(ap)
-            else:
-                assignment.append("!" + ap)
+    for line in hoax_file.read_text().splitlines():
+        raw = re.search(r"{(.*)}", line)
+        if not raw:
+            continue
+        present = [tok.strip("'\" ") for tok in raw.group(1).split(",") if tok.strip()]
+        assignment = [ap if ap in present else f"!{ap}" for ap in aps]
         trace.append("&".join(assignment))
     return ";".join(trace) + ";cycle{1}"
 
 
-def check_acceptance(aut: spot.automaton, trace: str):
-    """Check if automaton accepts the given trace."""
-    word = spot.parse_word(trace, aut.get_dict())
-    run = spot.accepting_run(aut, word)
-    return run is not None
+def run_autfilt_stats(hoa_file: Path, stats_file: Path):
+    """Show automaton stats via autfilt."""
+    print("[+] Automaton stats:")
+    with open(stats_file, "w") as f:
+        subprocess.run(
+            ["autfilt", "--stats=%s states, %e edges, %a acc-sets, %c SCCs, det=%d"],
+            input=hoa_file.read_bytes(),
+            text=True,
+            stdout=f,
+            check=True,
+        )
 
 
-def pipeline_tlsf(tlsf_file: str, config_file: str):
-    """Full pipeline starting from a TLSF file."""
-    inputs, outputs, formula = parse_tlsf(tlsf_file)
-    if not formula:
-        raise ValueError(f"No formula found in {tlsf_file}")
+def run_autfilt_accept(hoa_file: Path, trace: str, output_file: Path):
+    """Check acceptance of a trace in automaton using autfilt."""
+    cmd = ["autfilt", f"--accept-word={trace}"]
+    res = subprocess.run(cmd, input=hoa_file.read_bytes(), capture_output=True)
+    output_file.write_bytes(res.stdout)
+    return res.returncode == 0
 
-    aut = synthesize_from_tlsf_formula(formula)
-    aps = extract_aps(aut)
 
-    raw_traces = run_hoax(aut, config_file)
-    trace = clean_and_generate_trace(raw_traces, aps)
+def pipeline(tlsf_file: str, config_file: str):
+    tlsf_path = Path(tlsf_file)
+    base = tlsf_path.stem
 
-    accepted = check_acceptance(aut, trace)
+    # Create results/<specname> directory
+    results_dir = Path("results") / base
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    hoa_file = results_dir / "01-system.hoa"
+    hoax_file = results_dir / "02-hoax.cleaned.hoa"
+    trace_file = results_dir / "03-trace.spot.txt"
+    stats_file = results_dir / "04-autfilt.stats.txt"
+    accepted_file = results_dir / "05-autfilt.accepted.hoa"
+    log_file = results_dir / "acceptance.log"
+
+    print(f"[+] Running ltlsynt on {tlsf_file}")
+    run_ltlsynt(tlsf_path, hoa_file)
+
+    aps = extract_aps(hoa_file)
+
+    print(f"[+] Running hoax on {hoa_file}")
+    run_hoax(hoa_file, hoax_file, Path(config_file), aps)
+
+    print("[+] Generating trace")
+    trace = generate_trace(hoax_file, aps)
+    trace_file.write_text(trace)
+
+    print("[+] Automaton stats:")
+    run_autfilt_stats(hoa_file, stats_file)
+
+    print("[+] Checking acceptance")
+    accepted = run_autfilt_accept(hoa_file, trace, accepted_file)
+        
+    with open(log_file, "w") as f:
+        f.write("Pass.\n" if accepted else "Did not pass.\n")
 
     return {
-        "tlsf_file": tlsf_file,
-        "inputs": inputs,
-        "outputs": outputs,
-        "formula": formula,
         "aps": aps,
         "trace": trace,
         "accepted": accepted,
-        "states": aut.num_states(),
-        "edges": aut.num_edges(),
     }
 
 
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 3:
-        print("Usage: python pipeline_tlsf.py spec.tlsf pipeline_configs.toml")
+    if len(sys.argv) < 2:
+        print("Usage: pipeline.py <spec.tlsf>")
         sys.exit(1)
 
-    tlsf_file = sys.argv[1]
-    config_file = sys.argv[2]
-
-    result = pipeline_tlsf(tlsf_file, config_file)
+    result = pipeline(sys.argv[1], "pipeline_configs.toml")
     print(result)
