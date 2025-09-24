@@ -1,28 +1,25 @@
-name: Reject Uppercase Filenames
+name: Enforce lowercase filenames
 
 on:
   push:
     branches:
-      - "**"   # run on all branches
+      - main
+      - develop
   pull_request:
     branches:
-      - "**"
+      - main
+      - develop
 
 jobs:
-  check-uppercase:
+  lint-filenames:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Find uppercase filenames
-        run: |
-          # list tracked files, check for uppercase letters
-          bad_files=$(git ls-files | grep '[A-Z]')
-          if [ -n "$bad_files" ]; then
-            echo "❌ Uppercase filenames detected:"
-            echo "$bad_files"
-            exit 1
-          else
-            echo "✅ No uppercase filenames found."
-          fi
+      - name: Lint Filenames
+        uses: julie-ng/lowercase-linter@v1
+        with:
+          path: '.'
+          pr-comment: true
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
