@@ -13,7 +13,7 @@
             "justMyCode": true,
             "args": [
                 "${workspaceFolder}/automata_reasoning/output/input.tlsf",
-                "${workspaceFolder}/automata_reasoning/pipeline_configs.toml"
+                "${workspaceFolder}/automata_reasoning/random_config.toml"
             ]
         }
     ]

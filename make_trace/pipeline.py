@@ -18,7 +18,7 @@ def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
     """Run ltlsynt on a TLSF file, strip the first line, and save HOA."""
     cmd = ["ltlsynt", "--tlsf", str(tlsf_file)]
     res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    # Drop first line (like `tail -n +2`)
+    # Drop first line 
     lines = res.stdout.splitlines()[1:]
     hoa_file.write_text("\n".join(lines))
 
@@ -40,6 +40,7 @@ def make_replacement(aps):
 
 def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
     """Run hoax with config, clean its output, and save result."""
+    print(config_file)
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
     res = subprocess.run(cmd, capture_output=True, text=True, check=True)
 
@@ -131,12 +132,13 @@ def pipeline(tlsf_file: str, config_file: str):
     }
 
 
+# This should just run from main.py
 if __name__ == "__main__":
     import sys
 
-    if len(sys.argv) < 2:
-        print("Usage: pipeline.py <spec.tlsf>")
+    if len(sys.argv) < 3:
+        print("Usage: pipeline.py <spec.tlsf> <config.toml>")
         sys.exit(1)
 
-    result = pipeline(sys.argv[1], "pipeline_configs.toml")
+    result = pipeline(sys.argv[1], sys.argv[2])
     print(result)
