@@ -15,12 +15,11 @@ import re
 from pathlib import Path
 import logging
 import sys, getopt
-
+import spot
 
 # local imports to abstract away the corp call
-# import parse
-# import spot
-# import cause
+from .parse import *
+from .cause import *
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -145,6 +144,10 @@ def extract_effects(
     return effects_arr
 
 
+def check_causality(hoa_file: Path, effects_file: Path, trace_file: Path, output_file: Path):
+    pass
+
+
 def pipeline(tlsf_file: str, config_file: str):
     tlsf_path = Path(tlsf_file)
     base = tlsf_path.stem
@@ -184,8 +187,10 @@ def pipeline(tlsf_file: str, config_file: str):
     with open(log_file, "w") as f:
         f.write("Pass.\n" if accepted else "Did not pass.\n")
 
-    print("[+] Checking causality")
+    print("[+] Extracting effects")
     effects = extract_effects(tlsf_file, trace_file, effects_file, outputs_file)
+
+    print("[+] Checking causality")
 
     return {
         "aps": aps,
