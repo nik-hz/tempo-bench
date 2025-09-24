@@ -1,5 +1,5 @@
 # Ignore macOS junk
-.DS_Store
+*.DS_Store
 
 # Ignore all Dockerfiles
 Dockerfile
