@@ -1,13 +1,13 @@
 #!/usr/bin/python3
 
-"""
-Main module that exposes the command line interface.
-"""
+"""Main module that exposes the command line interface."""
 
-import sys, getopt
+import getopt
+import sys
+
+import cause
 import parse
 import spot
-import cause
 
 
 def main(argv):
@@ -17,13 +17,16 @@ def main(argv):
     contingencies = False
     limitassumption = False
     causecheck = False
-    usage = (
-        "Usage: corp.py -s <systemfile> -e <effectfile> -t <tracefile> -o <outputfile> [options]"
-    )
-    options = (
-        "Options are:\n\t--contingencies, -c \n\t\ttoggles the inclusion of contingencies.\n\t"
-        + "--assumelimit, -a \n\t\tuses the distance metric that satisfies the limit assumption."
-    )
+    usage = """Usage: corp.py -s <systemfile> -e <effectfile> -t <tracefile> \
+    -o <outputfile> [options]"""
+
+    options = """Options are:
+        --contingencies, -c
+            toggles the inclusion of contingencies.
+        --assumelimit, -a
+            uses the distance metric that satisfies the limit assumption.
+    """
+
     man = "%s\n\n%s" % (usage, options)
 
     try:

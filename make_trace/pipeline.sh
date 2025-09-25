@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 : '
 Automata pipeline
-Date: September 2025 
+Date: September 2025
 
 Pipeline to convert a tlsf input file into hoa and run clis to extract reasoning traces
 
@@ -115,13 +115,13 @@ cat "$HOA_FILE" | autfilt --stats='%s states, %e edges, %a acc-sets, %c SCCs, de
 cat "$HOA_FILE" | autfilt --accept-word="$(<"$TRACE_FILE")" > "output/autfilt.out"
 
 if [ "$?" != 0 ]
-then 
+then
     echo "Did not pass."
-else 
+else
     echo "Pass."
 fi
 
-# causal temporal stuff is pretty simple. 
+# causal temporal stuff is pretty simple.
 : '
 Output of size n
 you will have n instantiations of each output, and at each step you check the truth value
