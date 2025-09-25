@@ -100,6 +100,48 @@ def run_autfilt_accept(hoa_file: Path, trace: str, output_file: Path):
     output_file.write_bytes(res.stdout)
     return res.returncode == 0
 
+def extract_outputs(tlsf_file: str):
+    cmd = ["syfco", "--print-output-signals", tlsf_file]
+    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    raw = res.stdout.strip()
+    clean = raw.replace("<", "").replace(">", "").replace(" ", "")
+    outputs = [ap for ap in clean.split(",") if ap]
+    return outputs
+
+
+def make_effect_traces_with_lag(trace_str: str, aps: list[str]):
+    trace_stripped = trace_str.split("cycle{")[0].rstrip(";")
+    timesteps = trace_stripped.split(";")
+    effect_traces = {}
+
+    for ap in aps:
+        entries = []
+        for idx, ts in enumerate(timesteps):
+            tokens = ts.split("&")
+            if ap in tokens:  # AP present at this time step
+                # prefix with X repeated idx times
+                if idx == 0:
+                    entry = ap
+                else:
+                    entry = " ".join(["X"] * idx + [ap])
+                entries.append(entry)
+        effect_traces[ap] = entries
+
+    return effect_traces
+
+
+def causal_extraction(hoa: Path, effect: str, trace: str):
+    cmd = [
+        "python",
+        "corp.py",
+        "-s", str(hoa),
+        "-e", str(effect),
+        "-t", str(trace),
+        "-o", "result.hoa"
+    ]
+    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    return res.stdout
+
 
 def pipeline(tlsf_file: str, config_file: str):
     tlsf_path = Path(tlsf_file)
@@ -133,9 +175,18 @@ def pipeline(tlsf_file: str, config_file: str):
 
     print("[+] Checking acceptance")
     accepted = run_autfilt_accept(hoa_file, trace, accepted_file)
-        
+
     with open(log_file, "w") as f:
         f.write("Pass.\n" if accepted else "Did not pass.\n")
+
+    print("[+] Extracting causal outputs")
+    AP_Outputs = extract_outputs(tlsf_path)
+
+    Effects = make_effect_traces_with_lag(trace, AP_Outputs)
+
+    print("[+] Running corp.py on effects")
+    reasoning = causal_extraction(hoa_file, Effects['g_0'], trace)
+    print("[+] Reasoning info saved to reasoning.json")
 
     return {
         "aps": aps,
