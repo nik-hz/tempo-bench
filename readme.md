@@ -1,50 +1,193 @@
+# Tempo-RL: Temporal Logic Synthesis and Causal Reasoning Framework
 
-# CORP: Causes for Omega-Regular Properties
+Tempo-RL is a comprehensive framework for synthesizing causes for omega-regular properties on reactive system traces. It combines temporal logic synthesis, trace generation, and causality analysis to provide insights into system behavior.
 
-This repository contains CORP, a prototype tool to synthesize causes for effects that are omega-regular properties on a trace of a reactive system.
+## Overview
 
-CORP implements a cause-synthesis algorithm that is described in more detail in the related paper [1]. This automata-based algorithm constructs a non-deterministic Büchi automaton that characterizes the cause for a given omega-regular effect on a given trace of a given reactive system.
+This project implements CORP (Causes for Omega-Regular Properties), a prototype tool that synthesizes causes for effects that are omega-regular properties on traces of reactive systems. The framework includes an automata-based algorithm that constructs non-deterministic Büchi automata to characterize causes for given omega-regular effects.
 
-## Structure & Content
+## Features
 
-This repository contains all source files of CORP, which is written in Python, as well as a number of examples and Python notebooks that illustrate the algorithm proposed in [1].
+- **Temporal Logic Synthesis**: Convert TLSF (Temporal Logic Synthesis Format) specifications into HOA (Hanoi Omega Automata) format
+- **Trace Generation**: Generate random finite traces from automata using the hoax executor
+- **Causality Analysis**: Synthesize causes for omega-regular properties using the CORP algorithm
+- **Reasoning Extraction**: Extract causal explanations from system traces
+- **Visualization**: Interactive Python notebooks for visualizing automata and intermediate results
 
-- The Python source files, such as `corp.py` are found in the same folder as this README.
-- `examples` contains two example problems.
-- `notebooks` contains `stepbystep.ipynb`, a Python notebook that runs the main algorithm step-by-step and utilizes Spot's excellent visualization to illustrate the intermediate results, and `visualize.ipynb`, a notebook for simply visualizing automata, e.g., the ones computed form the main script.
+## Project Structure
 
+```
+tempo-rl/
+├── make_trace/          # Main pipeline implementation
+│   ├── pipeline.py      # Orchestrates the entire synthesis pipeline
+│   ├── corp.py          # CORP cause synthesis algorithm
+│   ├── cause.py         # Causality computation logic
+│   ├── auto.py          # Automata manipulation utilities
+│   └── parse.py         # Parsing utilities for automata formats
+├── tlsf_specs/          # TLSF specification examples
+├── results/             # Output directory for generated results
+├── .devcontainer/       # Docker development environment configuration
+├── requirements.txt     # Python dependencies
+└── trace_visualizer.py  # Tool for visualizing traces
+```
 
 ## Dependencies
 
-CORP consists of Python scripts that manipulate automata from the popular Spot library and that call functions of the same library. Hence, you will only need to install the following dependencies to run CORP:
+### Core Libraries
 
-- [Python 3](https://www.python.org/downloads/) (tested with version 3.11),
-- [Spot](https://spot.lre.epita.fr/install.html) (tested with version 2.11.6). Note that we explicitly require Spot's Python bindings so do not disable these during Spot's installation (per default, they are enabled). For many systems, you will need to specify a target directory for the Python bindings by running Spot's `./configure` with `--with-pythondir=...`. Spot's `./configure` will print a warning message at the very end if this is necessary, and will suggest a number of possible directories searched by your Python installation that you can use for again invoking `./configure --with-pythondir=...` before moving on to `make`.
+- **[Spot](https://spot.lre.epita.fr/)** (v2.14.1): Library for omega-automata manipulation and LTL/PSL model checking
+- **[buddy](https://sourceforge.net/projects/buddy/)**: BDD (Binary Decision Diagram) library used by Spot
+- **Python 3.12+**: Main implementation language
+
+### Python Packages
+
+Key dependencies from `requirements.txt`:
+- `click==8.1.8`: Command-line interface creation
+- `graphviz==0.21`: Graph visualization
+- `hoa_utils_redux==0.1.1`: HOA format utilities
+- `hoax-hoa-executor==0.1.4`: Random trace generation from HOA
+- `ltlf2dfa==1.0.1`: LTLf to DFA conversion
+- `numpy==2.3.3`: Numerical computations
+- `scipy==1.16.2`: Scientific computing
+- `sympy==1.14.0`: Symbolic mathematics
+- `typer==0.15.4`: CLI application framework
+
+### External Tools
+
+- **ltlsynt**: Part of Spot, used for TLSF synthesis
+- **syfco**: Synthesis format converter (included in Docker image)
+- **mona**: Monadic second-order logic tool
+
+## Installation
+
+### Option 1: Using Docker (Recommended)
+
+We provide a pre-built Docker image with all dependencies installed:
+
+```bash
+# Pull the Docker image
+docker pull nik101010/tempo-rl:latest
+
+# Run the container
+docker run -it -v $(pwd):/tempo-rl nik101010/tempo-rl:latest
+```
+
+### Option 2: Local Installation
+
+1. Install Spot library (requires compilation from source):
+```bash
+wget http://www.lre.epita.fr/dload/spot/spot-2.14.1.tar.gz
+tar xzf spot-2.14.1.tar.gz
+cd spot-2.14.1
+./configure --prefix=/usr/local --enable-python --enable-tools
+make && sudo make install
+```
+
+2. Install Python dependencies:
+```bash
+pip install -r requirements.txt
+```
+
+3. Install additional tools:
+```bash
+# For visualization
+apt-get install graphviz  # or brew install graphviz on macOS
+
+# For TLSF synthesis
+# syfco and mona need to be installed separately
+```
+
+## Docker Development Environment
+
+The project includes a complete Docker development environment with VS Code Dev Container support.
+
+### Using the Docker Image
+
+The Docker image `nik101010/tempo-rl:latest` contains:
+- All required Python packages
+- Spot library with Python bindings
+- syfco for TLSF conversion
+- mona for automata operations
+- Development tools (zsh, oh-my-zsh, git)
+
+### Building the Docker Image
+
+If you need to rebuild the image:
+
+```bash
+cd .devcontainer
+docker build -f HOA.Dockerfile -t tempo-rl:latest ..
+```
+
+### Using with VS Code Dev Containers
+
+1. Install the "Dev Containers" extension in VS Code
+2. Open the project folder in VS Code
+3. Press `Ctrl+Shift+P` and select "Dev Containers: Reopen in Container"
+4. VS Code will automatically use the configuration in `.devcontainer/devcontainer.json`
+
+The dev container configuration includes:
+- Python development extensions
+- Vim emulation
+- GitHub integration
+- Automatic mounting of the workspace
+- SSH agent forwarding for git operations
+
+### Docker Compose (Alternative)
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+services:
+  tempo-rl:
+    image: nik101010/tempo-rl:latest
+    volumes:
+      - .:/tempo-rl
+      - ./tlsf_specs:/specs
+    working_dir: /tempo-rl
+    command: zsh
+    stdin_open: true
+    tty: true
+```
+
+Then run:
+```bash
+docker-compose run --rm tempo-rl
+```
 
 ## Usage
 
-CORP is used via the script `corp.py`. For instance, a cause for the problem in folder `examples/simple1` can be synthesized with the command:
+### Basic Usage
 
-```
-python3 corp.py -s ./examples/simple1/system.hoa -e ./examples/simple1/effect.txt -t ./examples/simple1/trace.txt -o ./examples/simple1/result.hoa
-```
+Run the CORP synthesis algorithm:
 
-This specifies a system with the argument `-s`, an effect with `-e`, a trace with `-t` and outputs an automaton in the file specified after `-o`. These arguments must always be provided. See the manual (`-h`) for further optional arguments.
-
-We can use CORP also to check whether a given hypothesis is indeed the cause as follows:
-
-```
-python3 corp.py -s ./examples/simple1/system.hoa -e ./examples/simple1/effect.txt -t ./examples/simple1/trace.txt -o ./examples/simple1/result.hoa --check ./examples/simple1/hypothesis.hoa
+```bash
+python corp.py -s ./examples/simple1/system.hoa \
+               -e ./examples/simple1/effect.txt \
+               -t ./examples/simple1/trace.txt \
+               -o ./examples/simple1/result.hoa
 ```
 
-Note that this command will still output the true cause that was synthesized along the way.
+### Complete Pipeline
+
+Use the make_trace module to run the full pipeline:
+
+```bash
+python -m make_trace --input specs/example.tlsf --output results/
+```
+
+This will:
+1. Convert TLSF to HOA format
+2. Generate random traces
+3. Validate traces
+4. Perform causality analysis
+5. Extract reasoning
 
 ### Input Formats
 
-To maximize interoperability, CORP uses the same formats as the popular Spot library for all inputs. Systems need to be specified in Spot's [supported fragment](https://spot.lre.epita.fr/hoa.html) of the [Hanoi automata format](http://adl.github.io/hoaf/), traces in Spot's [word format](https://spot.lre.epita.fr/ipynb/word.html), and effects either in Spot's [LTL syntax](https://spot.lre.epita.fr/ioltl.html) or as non-deterministic Büchi automata (to capture omega-regular properties) in the Hanoi format. A comprehensive introduction to these concepts can be found [here](https://spot.lre.epita.fr/concepts.html).
-
-#### System (`-s`): 
-We use the Hanoi automaton format to encode reactive systems (Mealy machines) as Büchi automata with a generic acceptance condition, and specify outputs via the `controllable-AP` field, e.g.:
+#### System (-s): HOA Format
+Systems are specified as Mealy machines in HOA format with controllable APs:
 
 ```
 HOA: v1
@@ -64,64 +207,96 @@ State: 1
 --END--
 ```
 
-specifies a simple automaton with input `a` and output `b`, two states and transitions such that every input `a` is coupled with output `b`. Note that for the synthesis algorithm to work properly, every state input combination needs to be modeled in the automaton, e.g., it needs to be a proper Mealy machine. Note that CORP can easily be used with other formats such as [AIGER](https://fmv.jku.at/aiger/FORMAT.aiger) through utilizing the translation capabilities of the SPOT library.
+#### Trace (-t): Spot Word Format
+Traces use Spot's word format with lasso-shaped representation:
 
-#### Trace (`-t`): 
-The trace is specified in Spot's word format, e.g.: 
 ```
 a&b;cycle{a&b;a&b}
 ```
-is a (lasso-shaped) trace of the aforementioned system: a list of symbolic formulas describing the transition labels separated by semicolons, with a looping `cycle{W}` identified that symbolizes that `W` is repeated infinitely often. 
 
-#### Effect (`-e`): 
-The effect can either be specified in Spot's [LTL format](https://spot.lre.epita.fr/ioltl.html), e.g., as a formula: 
+#### Effect (-e): LTL or HOA Format
+Effects can be specified as LTL formulas:
+
 ```
 <>b
 ```
-or as an automaton in the Hanoi format (to express all omega-regular properties through, e.g., an non-deterministic Büchi automaton), e.g.:
-```
-HOA: v1
-States: 2
-Start: 1
-AP: 1 "b"
-acc-name: Buchi
-Acceptance: 1 Inf(0)
-properties: trans-labels explicit-labels state-acc complete
-properties: deterministic terminal
---BODY--
-State: 0 {0}
-[t] 0
-State: 1
-[0] 0
-[!0] 1
---END--
-```
-which characterizes the same property as the aforementioned formula. The optional hypotheses for cause checking can be provided in the same ways as effects.
 
-## Visualization via Python Notebooks
+Or as Büchi automata in HOA format for more complex omega-regular properties.
 
-Since CORP's output and intermediate results are Hanoi omega-automata that are not easy to parse, we provide Python notebooks for visualization.
+### Visualization
 
-To run these, you will need to install additional dependencies:
+Interactive notebooks are available for visualization:
 
-- [GraphViz](https://graphviz.org/download/) on your _system_, e.g., with `brew install graphviz` or `apt-get install graphviz`
-
-- IPython and some way to run Jupyter notebooks, e.g., `notebook`. These can be installed with:
-
-```
-pip3 install ipython notebook
-```
-
-Using the above, you can then run and explore the provided notebook in a browser, starting from the following command in the `notebooks/` folder:
-
-```
+```bash
+cd notebooks/
 python3 -m notebook
 ```
 
+Then open:
+- `stepbystep.ipynb`: Step-by-step algorithm visualization
+- `visualize.ipynb`: Automata visualization tool
 
-# NOTES 
-use a domain specific language, or be aware that noisy channel, twmporal to NL via LLM is not deterministic anymore due to the nature of NL
+## Pipeline Stages
 
-## Literature
+1. **TLSF → HOA**: Synthesize temporal logic specifications into automata
+2. **Trace Generation**: Generate random finite traces from automata
+3. **Trace Validation**: Check trace acceptance and convert formats
+4. **Causality Analysis**: Generate causal automata using CORP
+5. **Reasoning Extraction**: Extract causal explanations from traces
 
-[1] Synthesis of Temporal Causality. Bernd Finkbeiner, Hadar Frenkel, Niklas Metzger and Julian Siber. CAV 2024.
+## Output Files
+
+The pipeline generates the following outputs:
+- `system.hoa`: Synthesized automaton
+- `hoax_output.txt`: Raw hoax trace output
+- `trace.txt`: Spot-format trace
+- `effect.txt`: Effect specification for output APs
+- `causal.hoa`: Causal automaton
+- `reasoning.txt`: Extracted reasoning trace
+
+## Examples
+
+Example specifications are provided in the `tlsf_specs/` directory. These demonstrate various temporal logic synthesis problems and their solutions.
+
+## Development
+
+### Running Tests
+
+Check tool availability:
+```bash
+python -m make_trace --check-tools
+```
+
+### Debugging
+
+Enable debug logging:
+```bash
+export DEBUG=1
+python -m make_trace --input specs/example.tlsf --output results/
+```
+
+## References
+
+- **CORP Algorithm**: "Synthesis of Temporal Causality" by Bernd Finkbeiner, Hadar Frenkel, Niklas Metzger and Julian Siber. CAV 2024.
+- **Spot Library**: [https://spot.lre.epita.fr/](https://spot.lre.epita.fr/)
+- **TLSF Format**: [https://arxiv.org/abs/1604.02284](https://arxiv.org/abs/1604.02284)
+- **HOA Format**: [http://adl.github.io/hoaf/](http://adl.github.io/hoaf/)
+
+## License
+
+This project is licensed under the terms specified in the LICENSE file.
+
+## Contributing
+
+Contributions are welcome! Please ensure:
+1. Code follows existing conventions
+2. Tests pass with both `npm run lint` and type checking
+3. Documentation is updated for new features
+4. Docker image builds successfully if dependencies change
+
+## Support
+
+For issues and questions:
+- Open an issue on the GitHub repository
+- Consult the documentation in the `notebooks/` directory
+- Check the example specifications in `tlsf_specs/`

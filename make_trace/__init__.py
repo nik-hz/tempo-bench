@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Automata Reasoning Pipeline
+"""Automata Reasoning Pipeline.
 
 A comprehensive pipeline for temporal logic synthesis, trace generation,
 causality analysis, and reasoning extraction.
