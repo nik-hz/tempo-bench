@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev python3-pip wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# spot version and checksum 
+# spot version and checksum
 ENV SPOT_VERSION=2.14.1
 ENV SPOT_SHA256=25df8a6af4e4bb3ae67515ac98e3d37c4303a682e33aaa66e72d74b39459a530
 

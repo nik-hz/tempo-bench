@@ -1,6 +1,5 @@
 {
-    "name": "reasoning_from_ltl",
-    // "build": { "dockerfile": "HOA.Dockerfile", "context": ".." },
+    "name": "tempo-bench",
     "image": "nik101010/tempo-rl:latest",
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "mounts": [
@@ -14,7 +13,23 @@
         "vscode": {
             "settings": {
                 "python.defaultInterpreterPath": "/usr/local/bin/python",
-                "editor.tabSize": 4,
+                "python.formatting.provider": "black",
+                "editor.formatOnSave": true,
+                "python.formatting.blackArgs": [
+                    "--line-length=88"
+                ],
+                "python.sortImports.args": [
+                    "--profile",
+                    "black",
+                    "--line-length",
+                    "88"
+                ],
+                "python.linting.enabled": true,
+                "python.linting.flake8Enabled": true,
+                "python.linting.flake8Args": [
+                    "--max-line-length=88",
+                    "--extend-ignore=E203,W503"
+                ],
                 "terminal.integrated.defaultProfile.linux": "zsh"
             },
             "extensions": [
@@ -31,10 +46,12 @@
                 "eamodio.gitlens",
                 "visualstudioexptteam.vscodeintellicode",
                 "yzhang.markdown-all-in-one",
-                "foxundermoon.shell-format"
+                "foxundermoon.shell-format",
+                "redhat.vscode-yaml",
+                "tamasfe.even-better-toml"
             ]
         }
     },
     "overrideCommand": true,
-    "postCreateCommand": "chsh -s /usr/bin/zsh"
+    "postCreateCommand": "pre-commit install"
 }

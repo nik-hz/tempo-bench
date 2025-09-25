@@ -1,7 +1,8 @@
 import spot
 
 """
-Parses the given counterexample trace and returns it as a tuple of lists over sets of APs.
+Parses the given counterexample trace;
+returns it as a tuple of lists over sets of APs.
 """
 
 
@@ -17,8 +18,10 @@ Parses any property from the given file and handles both LTL formulas and HOA au
 
 def propertyfile(filename):
     try:
-        return spot.postprocess(spot.automaton(filename), "buchi", "state-based", "small", "high")
-    except:
+        return spot.postprocess(
+            spot.automaton(filename), "buchi", "state-based", "small", "high"
+        )
+    except Exception:
         return spot.postprocess(
             spot.translate(spot.formula(open(filename).read())),
             "buchi",
@@ -37,9 +40,13 @@ IMMEDIATELY NEGATES THE PROPERTY! (For runtime gains with formulas).
 def effectfile(filename):
     try:
         return spot.postprocess(
-            spot.complement(spot.automaton(filename)), "buchi", "state-based", "small", "high"
+            spot.complement(spot.automaton(filename)),
+            "buchi",
+            "state-based",
+            "small",
+            "high",
         )
-    except:
+    except Exception:
         return spot.postprocess(
             spot.translate(spot.formula("!(" + open(filename).read() + ")")),
             "buchi",

@@ -1,16 +1,14 @@
-"""
-This module contains the algorithms for cause synthesis.
-"""
+"""This module contains the algorithms for cause synthesis."""
 
 import spot
-from .auto import *
+
+from . import auto
 
 
 def synthesize(system, trace, effect_automaton_neg, limit_assumption, contingencies):
-    """
-    Given a system as a automaton, a set of inputs (from the atomic propositions), a trace in lasso-shape,
-    and an effect as an automaton this function synthesizes the cause property and returns it as a Büchi automaton.
-    """
+    """Given a system as a automaton, a set of inputs (from the atomic propositions), a
+    trace in lasso-shape, and an effect as an automaton this function synthesizes the
+    cause property and returns it as a Büchi automaton."""
 
     outputs = spot.get_synthesis_output_aps(system)
     inputs = set(str(a) for a in system.ap()).difference(set(str(p) for p in outputs))
@@ -22,7 +20,15 @@ def synthesize(system, trace, effect_automaton_neg, limit_assumption, contingenc
     distance_metric = "G (True"
     for i in inputs:
         distance_metric += (
-            " & (!(" + i + "_actual <-> " + i + "_close) -> !(" + i + "_actual <-> " + i + "_far))"
+            " & (!("
+            + i
+            + "_actual <-> "
+            + i
+            + "_close) -> !("
+            + i
+            + "_actual <-> "
+            + i
+            + "_far))"
         )
         if limit_assumption:
             distance_metric = (
@@ -48,7 +54,10 @@ def synthesize(system, trace, effect_automaton_neg, limit_assumption, contingenc
 
     # Construct NBA for inner product.
     inner_product = spot.postprocess(
-        spot.product(auto.add_suffix(system, "_close"), intersection), "buchi", "state-based", "low"
+        spot.product(auto.add_suffix(system, "_close"), intersection),
+        "buchi",
+        "state-based",
+        "low",
     )
 
     # Project close APs existentially.
