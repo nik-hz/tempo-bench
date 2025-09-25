@@ -10,17 +10,31 @@
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {}
     },
-    "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "editor.tabSize": 4,
-        "terminal.integrated.defaultProfile.linux": "zsh"
+    "customizations": {
+        "vscode": {
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "editor.tabSize": 4,
+                "terminal.integrated.defaultProfile.linux": "zsh"
+            },
+            "extensions": [
+                "ms-python.python",
+                "ms-python.debugpy",
+                "ms-python.black-formatter",
+                "ms-python.isort",
+                "github.vscode-pull-request-github",
+                "vscodevim.vim",
+                "docker.docker",
+                "ms-azuretools.vscode-docker",
+                "rogalmic.bash-debug",
+                "anthropic.claude-code",
+                "eamodio.gitlens",
+                "visualstudioexptteam.vscodeintellicode",
+                "yzhang.markdown-all-in-one",
+                "foxundermoon.shell-format"
+            ]
+        }
     },
-    "extensions": [
-        "ms-python.python",
-        "ms-python.debugpy",
-        "github.vscode-pull-request-github",
-        "vscodevim.vim",
-    ],
     "overrideCommand": true,
     "postCreateCommand": "chsh -s /usr/bin/zsh"
 }
