@@ -17,11 +17,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-# import spot
+import spot
 
 # # local imports to abstract away the corp call
-# from . import cause
-# from . import parse
+from . import cause
 
 logging.basicConfig(level=logging.ERROR)
 
@@ -112,58 +111,8 @@ def run_autfilt_accept(hoa_file: Path, trace: str, output_file: Path):
     output_file.write_bytes(res.stdout)
     return res.returncode == 0
 
-def extract_outputs(tlsf_file: str):
-    cmd = ["syfco", "--print-output-signals", tlsf_file]
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    raw = res.stdout.strip()
-    clean = raw.replace("<", "").replace(">", "").replace(" ", "")
-    outputs = [ap for ap in clean.split(",") if ap]
-    return outputs
 
-
-def make_effect_traces_with_lag(trace_str: str, aps: list[str]):
-    trace_stripped = trace_str.split("cycle{")[0].rstrip(";")
-    timesteps = trace_stripped.split(";")
-    effect_traces = {}
-
-    for ap in aps:
-        entries = []
-        for idx, ts in enumerate(timesteps):
-            tokens = ts.split("&")
-            if ap in tokens:  # AP present at this time step
-                # prefix with X repeated idx times
-                if idx == 0:
-                    entry = ap
-                else:
-                    entry = " ".join(["X"] * idx + [ap])
-                entries.append(entry)
-        effect_traces[ap] = entries
-
-    return effect_traces
-
-
-def causal_extraction(hoa: Path, effect: str, trace: str):
-    cmd = [
-        "python",
-        "corp.py",
-        "-s", str(hoa),
-        "-e", str(effect),
-        "-t", str(trace),
-        "-o", "result.hoa"
-    ]
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return res.stdout
-
-
-# TODO implement the proposition stuff with spot outputs
-def extract_effects(
-    tlsf_file: Path,
-    trace_file: Path,
-    effects_file: Path,
-    outputs_file: Path,
-):
-    """Extracts the output parameters of the tlsf file."""
-
+def extract_outputs(tlsf_file: Path, outputs_file: Path):
     # run syfco to get outputs
     cmd = ["syfco", tlsf_file, "-outs"]
     try:
@@ -174,10 +123,22 @@ def extract_effects(
     output_params = res.stdout.decode("utf-8").strip().split(",")
     outputs_file.write_text(res.stdout.decode("utf-8"))
 
+    return output_params
+
+
+# TODO implement the proposition stuff with spot outputs
+def extract_effects(
+    trace: str,
+    output_params: list,
+    effects_file: Path,
+):
+    """Extracts the output parameters of the tlsf file.
+
+    Returns a list of effects with the correct timestep offset
+    """
+
     # NOTE there may be some better way of doing this, but it should be O(N)
-    indexed_trace = [
-        s.split("&") for s in trace_file.read_text().strip().split(";")[:-1]
-    ]
+    indexed_trace = [s.split("&") for s in trace.strip().split(";")[:-1]]
 
     effects_str = ""
     effects_arr = []
@@ -185,17 +146,68 @@ def extract_effects(
         for output in output_params:  # is O(N) output params fixed
             if output in params:
                 effects_str += f"{'X'*i} {output}\n"
-                effects_arr.append(f"{'X'*i} {output}\n")
+                effects_arr.append(f"{'X'*i} {output}")
 
     effects_file.write_text(effects_str)
 
     return effects_arr
 
 
+# def make_effect_traces_with_lag(trace_str: str, aps: list[str]):
+#     trace_stripped = trace_str.split("cycle{")[0].rstrip(";")
+#     timesteps = trace_stripped.split(";")
+#     effect_traces = {}
+
+#     for ap in aps:
+#         entries = []
+#         for idx, ts in enumerate(timesteps):
+#             tokens = ts.split("&")
+#             if ap in tokens:  # AP present at this time step
+#                 # prefix with X repeated idx times
+#                 if idx == 0:
+#                     entry = ap
+#                 else:
+#                     entry = " ".join(["X"] * idx + [ap])
+#                 entries.append(entry)
+#         effect_traces[ap] = entries
+
+#     return effect_traces
+
+
 def check_causality(
-    hoa_file: Path, effects_file: Path, trace_file: Path, output_file: Path
+    effects_arr: list, trace_str: str, hoa_file: Path, output_file: Path, log_file: Path
 ):
-    pass
+
+    system = spot.automaton(str(hoa_file))
+    trace = spot.parse_word(trace_str)
+    log_str = ""
+
+    try:
+        for effect_str in effects_arr:
+            # we only pass in true effects so no need for the tryexcept block here
+            effect = spot.postprocess(
+                spot.complement(spot.translate(spot.formula(effect_str))),
+                "buchi",
+                "state-based",
+                "small",
+                "high",
+            )
+
+            result = cause.synthesize(system, trace, effect, True, True)
+
+            if result.is_empty():
+                log_str += f"No cause found for {effect}\n"
+            else:
+                log_str += f"Cause found for {effect}\n"
+                result.to_str()
+                print(result.to_str())
+                # TODO parse this
+
+        with open(log_file, "w") as f:
+            f.write(log_str)
+
+    except Exception as e:
+        logging.error(f"Error: {e}")
 
 
 def pipeline(tlsf_file: str, config_file: str):
@@ -211,10 +223,11 @@ def pipeline(tlsf_file: str, config_file: str):
     trace_file = results_dir / "03-trace.spot.txt"
     stats_file = results_dir / "04-autfilt.stats.txt"
     accepted_file = results_dir / "05-autfilt.accepted.hoa"
-    # effects_file = results_dir / "06-effects.txt"
-    # outputs_file = results_dir / "07-outputs.txt"
-    # causal_file = results_dir / "08-causal.hoa"
-    log_file = results_dir / "acceptance.log"
+    effects_file = results_dir / "06-effects.txt"
+    outputs_file = results_dir / "07-outputs.txt"
+    causal_file = results_dir / "08-causal.hoa"
+    acceptance_log_file = results_dir / "acceptance.log"
+    corp_log_file = results_dir / "corp.log"
 
     print(f"[+] Running ltlsynt on {tlsf_file}")
     run_ltlsynt(tlsf_path, hoa_file)
@@ -234,16 +247,20 @@ def pipeline(tlsf_file: str, config_file: str):
     print("[+] Checking acceptance")
     accepted = run_autfilt_accept(hoa_file, trace, accepted_file)
 
-    with open(log_file, "w") as f:
+    with open(acceptance_log_file, "w") as f:
         f.write("Pass.\n" if accepted else "Did not pass.\n")
 
-
     print("[+] Extracting causal outputs")
-    AP_Outputs = extract_outputs(tlsf_path)
+    output_params = extract_outputs(tlsf_path, outputs_file)
 
-    Effects = make_effect_traces_with_lag(trace, AP_Outputs)
+    print("[+] Generate effects")
+    effects_arr = extract_effects(trace, output_params, effects_file)
 
-
+    print("[+] Generate causal traces")
+    causality = check_causality(
+        effects_arr, trace, hoa_file, causal_file, corp_log_file
+    )
+    print(causality)
 
     return {
         "aps": aps,

@@ -8,7 +8,8 @@
             "name": "Python: pipeline.py with args",
             "type": "debugpy",
             "request": "launch",
-            "program": "make_trace/pipeline.py",
+            // "program": "make_trace/pipeline.py",
+            "module": "make_trace.pipeline",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
