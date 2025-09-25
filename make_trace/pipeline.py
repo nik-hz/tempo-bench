@@ -179,21 +179,21 @@ def check_causality(
 ):
 
     system = spot.automaton(str(hoa_file))
-    trace = spot.parse_word(trace_str)
+    trace = spot.parse_word(trace_str.rstrip())
     log_str = ""
 
     try:
         for effect_str in effects_arr:
             # we only pass in true effects so no need for the tryexcept block here
             effect = spot.postprocess(
-                spot.complement(spot.translate(spot.formula(effect_str))),
+                spot.translate(spot.formula("!(" + effect_str.strip() + ")")),
                 "buchi",
                 "state-based",
                 "small",
                 "high",
             )
 
-            result = cause.synthesize(system, trace, effect, True, True)
+            result = cause.synthesize(system, trace, effect, False, False)
 
             if result.is_empty():
                 log_str += f"No cause found for {effect}\n"
