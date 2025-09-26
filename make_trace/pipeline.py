@@ -9,12 +9,15 @@ NOTES:
 If we give it a lot of traces, it can figure out the legal transitions
 """
 
+import json
+
 # import getopt
 import logging
 import os
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 import spot
@@ -126,7 +129,6 @@ def extract_outputs(tlsf_file: Path, outputs_file: Path):
     return output_params
 
 
-# TODO implement the proposition stuff with spot outputs
 def extract_effects(
     trace: str,
     output_params: list,
@@ -153,38 +155,244 @@ def extract_effects(
     return effects_arr
 
 
-# def make_effect_traces_with_lag(trace_str: str, aps: list[str]):
-#     trace_stripped = trace_str.split("cycle{")[0].rstrip(";")
-#     timesteps = trace_stripped.split(";")
-#     effect_traces = {}
+def extract_hoa_aps(hoa_content: str):
+    """
+    Extract the atomic propositions (APs) from the HOA file.
+    Returns a list of AP names in order.
+    """
+    for line in hoa_content.split("\n"):
+        if line.startswith("AP:"):
+            # Parse line like: AP: 2 "r_0" "r_1"
+            parts = line.split()
+            ap_count = int(parts[1])
+            aps = []
+            for i in range(2, 2 + ap_count):
+                ap_name = parts[i].strip('"')
+                aps.append(ap_name)
+            return aps
+    return []
 
-#     for ap in aps:
-#         entries = []
-#         for idx, ts in enumerate(timesteps):
-#             tokens = ts.split("&")
-#             if ap in tokens:  # AP present at this time step
-#                 # prefix with X repeated idx times
-#                 if idx == 0:
-#                     entry = ap
-#                 else:
-#                     entry = " ".join(["X"] * idx + [ap])
-#                 entries.append(entry)
-#         effect_traces[ap] = entries
 
-#     return effect_traces
+def filter_props_for_hoa(all_props: list, hoa_aps: list):
+    """
+    Filter the propositions from the trace to only include those
+    that are relevant to this specific HOA automaton.
+    """
+    relevant_props = []
+    for prop in all_props:
+        # Remove negation to get base prop name
+        base_prop = prop.lstrip("!")
+        if base_prop in hoa_aps:
+            relevant_props.append(prop)
+    return relevant_props
+
+
+def parse_hoa_states(hoa_content: str):
+    """
+    Parse HOA content and return a dictionary of states and their transitions.
+    Returns: {state_id: [(condition, target_state), ...]}
+    """
+    states = {}
+    current_state = None
+
+    lines = hoa_content.split("\n")
+    in_body = False
+
+    for line in lines:
+        line = line.strip()
+
+        if line == "--BODY--":
+            in_body = True
+            continue
+        elif line == "--END--":
+            break
+
+        if not in_body:
+            continue
+
+        if line.startswith("State:"):
+            # Parse state line like "State: 0" or "State: 17 {0}"
+            parts = line.split()
+            current_state = int(parts[1])
+            states[current_state] = []
+        elif line.startswith("[") and current_state is not None:
+            # Parse transition line like "[!0&1] 1"
+            condition_end = line.find("]")
+            condition = line[1:condition_end]
+            target = int(line[condition_end + 1 :].strip())
+            states[current_state].append((condition, target))
+
+    return states
+
+
+def evaluate_condition(condition: str, current_props: list, hoa_aps: list):
+    """
+    Evaluate if a condition matches the current propositions.
+    condition: string like "!0&1" or "t" (using HOA indices)
+    current_props: list of current atomic propositions (filtered for this HOA)
+    hoa_aps: list of AP names in the order they appear in the HOA
+    """
+    if condition == "t":
+        return True
+
+    # Build a mapping of which APs are true/false in current step
+    ap_values = {}
+    for i, ap_name in enumerate(hoa_aps):
+        # Check if this AP is present (true) or negated (false) in current_props
+        if ap_name in current_props:
+            ap_values[str(i)] = True
+        elif f"!{ap_name}" in current_props:
+            ap_values[str(i)] = False
+        else:
+            # If neither present nor explicitly negated, assume false
+            ap_values[str(i)] = False
+
+    # Replace indices in condition with actual boolean values
+    eval_condition = condition
+    for i, value in ap_values.items():
+        eval_condition = eval_condition.replace(f"!{i}", f"not {value}")
+        eval_condition = eval_condition.replace(i, str(value))
+
+    # Replace logical operators
+    eval_condition = eval_condition.replace("&", " and ").replace("|", " or ")
+
+    try:
+        return eval(eval_condition)
+    except Exception as e:
+        logging.error(f"Error evaluating condition '{condition}': {e}")
+        return False
+
+
+def parse_required_inputs(condition: str, hoa_aps: list):
+    """
+    Parse a condition string and return human-readable required inputs
+    using the actual AP names from the HOA.
+    """
+    if condition == "t":
+        return ["no constraints"]
+
+    # Convert numeric indices back to AP names
+    # Process negated indices first to avoid double replacement
+    readable_condition = condition
+
+    # Sort by index in descending order to avoid partial replacements
+    for i in sorted(range(len(hoa_aps)), reverse=True):
+        ap_name = hoa_aps[i]
+        # Replace negated indices first
+        readable_condition = readable_condition.replace(f"!{i}", f"!{ap_name}")
+        # Then replace positive indices, but avoid replacing parts of AP names
+        readable_condition = re.sub(rf"\b{i}\b", ap_name, readable_condition)
+
+    # Make it more readable
+    readable_condition = readable_condition.replace("&", " AND ").replace("|", " OR ")
+
+    return [readable_condition]
+
+
+def trace_through_hoa(hoa_file_path: str, trace_str: str, effect_str: str):
+    """
+    Trace through the HOA automaton using the given trace and record
+    required input conditions at each step until the effect occurs.
+
+    Returns a dictionary: {time_step: [required_conditions]}
+    """
+    required_inputs = {}
+
+    # Parse the trace to get timesteps
+    trace_clean = trace_str.split("cycle{")[0].rstrip(";")
+    timesteps = [ts.split("&") for ts in trace_clean.split(";")]
+
+    # Determine when the effect occurs
+    effect_time = None
+    x_count = effect_str.count("X")  # Number of X's indicates the timestep
+    if x_count == 0:
+        effect_time = 0
+    else:
+        effect_time = x_count
+
+    # Read and parse the HOA file
+    try:
+        with open(hoa_file_path, "r") as f:
+            hoa_content = f.read()
+
+        # Extract the APs that this specific HOA uses
+        hoa_aps = extract_hoa_aps(hoa_content)
+
+        # Parse HOA content to extract states and transitions
+        states = parse_hoa_states(hoa_content)
+
+        # Find the start state
+        start_state = None
+        for line in hoa_content.split("\n"):
+            if line.startswith("Start:"):
+                start_state = int(line.split()[1])
+                break
+
+        if start_state is None:
+            return required_inputs
+
+        current_state = start_state
+
+        # Trace through the automaton up to the effect time
+        for time_step in range(min(effect_time + 1, len(timesteps))):
+            current_props = timesteps[time_step]
+
+            # Filter current props to only include those relevant to this HOA
+            relevant_props = filter_props_for_hoa(current_props, hoa_aps)
+
+            # Find which transition is taken from current state
+            if current_state in states:
+                transitions = states[current_state]
+                next_state = None
+                required_condition = None
+
+                # Check each transition to see which one matches current props
+                for condition, target_state in transitions:
+                    if evaluate_condition(condition, relevant_props, hoa_aps):
+                        next_state = target_state
+                        required_condition = condition
+                        break
+
+                if (
+                    required_condition and required_condition != "t"
+                ):  # "t" means always true
+                    required_inputs[time_step] = parse_required_inputs(
+                        required_condition, hoa_aps
+                    )
+                elif required_condition == "t":
+                    required_inputs[time_step] = ["no constraints"]
+
+                current_state = next_state
+
+                # Stop if we've reached the effect time
+                if time_step >= effect_time:
+                    break
+
+    except Exception as e:
+        logging.error(f"Error tracing through HOA {hoa_file_path}: {e}")
+
+    return required_inputs
 
 
 def check_causality(
     effects_arr: list, trace_str: str, hoa_file: Path, output_file: Path, log_file: Path
 ):
-
+    """
+    Modified to save HOA files for each effect and trace through them
+    to find required inputs at each timestep.
+    """
     system = spot.automaton(str(hoa_file))
     trace = spot.parse_word(trace_str.rstrip())
     log_str = ""
 
+    # Dictionary to store effect -> temp HOA file mapping
+    effect_hoa_files = {}
+    # Dictionary to store effect -> required inputs mapping
+    effect_inputs = {}
+
     try:
+        # First pass: generate HOA files for each effect
         for effect_str in effects_arr:
-            # we only pass in true effects so no need for the tryexcept block here
             effect = spot.postprocess(
                 spot.translate(spot.formula("!(" + effect_str.strip() + ")")),
                 "buchi",
@@ -196,18 +404,50 @@ def check_causality(
             result = cause.synthesize(system, trace, effect, False, False)
 
             if result.is_empty():
-                log_str += f"No cause found for {effect}\n"
+                log_str += f"No cause found for {effect_str}\n"
             else:
-                log_str += f"Cause found for {effect}\n"
-                result.to_str()
-                print(result.to_str())
-                # TODO parse this
+                log_str += f"Cause found for {effect_str}\n"
 
+                # Create temporary file for this effect's HOA
+                temp_fd, temp_path = tempfile.mkstemp(
+                    suffix=".hoa",
+                    prefix=f'effect_{effect_str.replace(" ", "_").replace("X", "")}_',
+                )
+                os.close(temp_fd)  # Close the file descriptor
+
+                # Write HOA content to temp file
+                with open(temp_path, "w") as temp_file:
+                    temp_file.write(result.to_str())
+
+                effect_hoa_files[effect_str] = temp_path
+                print(f"Saved HOA for {effect_str} to {temp_path}")
+
+        # Second pass: trace through each effect's HOA to find required inputs
+        for effect_str, hoa_path in effect_hoa_files.items():
+            required_inputs = trace_through_hoa(hoa_path, trace_str, effect_str)
+            effect_inputs[effect_str] = required_inputs
+
+        # Write log
         with open(log_file, "w") as f:
             f.write(log_str)
+            f.write("\n--- Required Inputs Analysis ---\n")
+            for effect_str, inputs in effect_inputs.items():
+                f.write(f"\nFor effect {effect_str}:\n")
+                for time_step, conditions in inputs.items():
+                    f.write(f"  Time {time_step}: {conditions}\n")
+
+        return effect_inputs
 
     except Exception as e:
         logging.error(f"Error: {e}")
+        return {}
+    finally:
+        # Clean up temporary files
+        for temp_path in effect_hoa_files.values():
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
 
 
 def pipeline(tlsf_file: str, config_file: str):
@@ -260,12 +500,18 @@ def pipeline(tlsf_file: str, config_file: str):
     causality = check_causality(
         effects_arr, trace, hoa_file, causal_file, corp_log_file
     )
-    print(causality)
+
+    filename = results_dir / "reasoning.json"
+
+    # Open the file in write mode ('w') and use json.dump() to write the dictionary
+    with open(filename, "w") as f:
+        json.dump(causality, f, indent=4)
 
     return {
         "aps": aps,
         "trace": trace,
         "accepted": accepted,
+        "causality": causality,  # Now returns the effect_inputs dictionary
     }
 
 
