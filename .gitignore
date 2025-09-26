@@ -4,12 +4,11 @@
 
 .DS_Store
 
-# inputs and results
 results/
 tlsf_specs/
 *.tar.gz
 
-# test files
+# spec test files
 *.hoa
 *.tlsf
 *.trace

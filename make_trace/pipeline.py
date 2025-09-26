@@ -45,6 +45,15 @@ def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
     hoa_file.write_text("\n".join(lines))
 
 
+def extract_aps(hoa_file: Path):
+    """Extract atomic propositions from line 4 of the HOA file."""
+    with open(hoa_file) as f:
+        for i, line in enumerate(f, start=1):
+            if i == 4:
+                return re.findall(r'"([^"]+)"', line)
+    return []
+
+
 def make_replacement(aps):
     """Build replacement string for empty set() in hoax output."""
     parts = [f"'!{ap}'" for ap in aps]
@@ -53,6 +62,7 @@ def make_replacement(aps):
 
 def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
     """Run hoax with config, clean its output, and save result."""
+    print(config_file)
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
 
     try:
@@ -146,8 +156,8 @@ def extract_effects(
 
 
 def extract_hoa_aps(hoa_content: str):
-    """Extract the atomic propositions (APs) from the HOA file.
-
+    """
+    Extract the atomic propositions (APs) from the HOA file.
     Returns a list of AP names in order.
     """
     for line in hoa_content.split("\n"):
@@ -164,8 +174,10 @@ def extract_hoa_aps(hoa_content: str):
 
 
 def filter_props_for_hoa(all_props: list, hoa_aps: list):
-    """Filter the propositions from the trace to only include those that are relevant to
-    this specific HOA automaton."""
+    """
+    Filter the propositions from the trace to only include those
+    that are relevant to this specific HOA automaton.
+    """
     relevant_props = []
     for prop in all_props:
         # Remove negation to get base prop name
@@ -176,8 +188,8 @@ def filter_props_for_hoa(all_props: list, hoa_aps: list):
 
 
 def parse_hoa_states(hoa_content: str):
-    """Parse HOA content and return a dictionary of states and their transitions.
-
+    """
+    Parse HOA content and return a dictionary of states and their transitions.
     Returns: {state_id: [(condition, target_state), ...]}
     """
     states = {}
@@ -214,8 +226,8 @@ def parse_hoa_states(hoa_content: str):
 
 
 def evaluate_condition(condition: str, current_props: list, hoa_aps: list):
-    """Evaluate if a condition matches the current propositions.
-
+    """
+    Evaluate if a condition matches the current propositions.
     condition: string like "!0&1" or "t" (using HOA indices)
     current_props: list of current atomic propositions (filtered for this HOA)
     hoa_aps: list of AP names in the order they appear in the HOA
@@ -252,8 +264,10 @@ def evaluate_condition(condition: str, current_props: list, hoa_aps: list):
 
 
 def parse_required_inputs(condition: str, hoa_aps: list):
-    """Parse a condition string and return human-readable required inputs using the
-    actual AP names from the HOA."""
+    """
+    Parse a condition string and return human-readable required inputs
+    using the actual AP names from the HOA.
+    """
     if condition == "t":
         return ["no constraints"]
 
@@ -276,8 +290,9 @@ def parse_required_inputs(condition: str, hoa_aps: list):
 
 
 def trace_through_hoa(hoa_file_path: str, trace_str: str, effect_str: str):
-    """Trace through the HOA automaton using the given trace and record required input
-    conditions at each step until the effect occurs.
+    """
+    Trace through the HOA automaton using the given trace and record
+    required input conditions at each step until the effect occurs.
 
     Returns a dictionary: {time_step: [required_conditions]}
     """
@@ -362,8 +377,10 @@ def trace_through_hoa(hoa_file_path: str, trace_str: str, effect_str: str):
 def check_causality(
     effects_arr: list, trace_str: str, hoa_file: Path, output_file: Path, log_file: Path
 ):
-    """Modified to save HOA files for each effect and trace through them to find
-    required inputs at each timestep."""
+    """
+    Modified to save HOA files for each effect and trace through them
+    to find required inputs at each timestep.
+    """
     system = spot.automaton(str(hoa_file))
     trace = spot.parse_word(trace_str.rstrip())
     log_str = ""
@@ -429,8 +446,8 @@ def check_causality(
         for temp_path in effect_hoa_files.values():
             try:
                 os.unlink(temp_path)
-            except Exception as e:
-                logging.error(f"Error: {e}")
+            except:
+                pass
 
 
 def pipeline(tlsf_file: str, config_file: str):
@@ -455,7 +472,7 @@ def pipeline(tlsf_file: str, config_file: str):
     print(f"[+] Running ltlsynt on {tlsf_file}")
     run_ltlsynt(tlsf_path, hoa_file)
 
-    aps = extract_hoa_aps(hoa_file.read_text())
+    aps = extract_aps(hoa_file)
 
     print(f"[+] Running hoax on {hoa_file}")
     run_hoax(hoa_file, hoax_file, Path(config_file), aps)
@@ -501,10 +518,8 @@ def pipeline(tlsf_file: str, config_file: str):
 # This should just run from main.py
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: pipeline.py <spec.tlsf>")
+        print("Usage: pipeline.py <spec.tlsf> <config.toml>")
         sys.exit(1)
 
-    result = pipeline(
-        sys.argv[1], os.path.join(os.path.dirname(__file__), "random_config.py")
-    )
+    result = pipeline(sys.argv[1], sys.argv[2])
     print(result)
