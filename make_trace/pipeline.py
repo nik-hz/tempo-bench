@@ -9,8 +9,6 @@ NOTES:
 If we give it a lot of traces, it can figure out the legal transitions
 """
 
-import json
-
 # import getopt
 import logging
 import os
@@ -25,7 +23,9 @@ import spot
 # # local imports to abstract away the corp call
 from . import cause
 
-logging.basicConfig(level=logging.ERROR)
+# Configure logger for this module
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)  # Default level, can be changed externally
 
 os.environ["PATH"] = "/usr/local/bin:" + os.environ["PATH"]
 os.environ["LD_LIBRARY_PATH"] = "/usr/local/lib:" + os.environ.get(
@@ -36,10 +36,8 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/local/lib:" + os.environ.get(
 def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
     """Run ltlsynt on a TLSF file, strip the first line, and save HOA."""
     cmd = ["ltlsynt", "--tlsf", str(tlsf_file)]
-    try:
-        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    except Exception as e:
-        logging.error(f"Error: {e}")
+    logging.debug(f"Running command: {' '.join(cmd)}")
+    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
     # Drop first line
     lines = res.stdout.splitlines()[1:]
     hoa_file.write_text("\n".join(lines))
@@ -55,10 +53,7 @@ def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
     """Run hoax with config, clean its output, and save result."""
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
 
-    try:
-        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    except Exception as e:
-        logging.error(f"Error: {e}")
+    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
 
     # Drop last line (like `sed '$d'`)
     lines = res.stdout.strip().splitlines()[:-1]
@@ -86,7 +81,7 @@ def generate_trace(hoax_file: Path, aps):
 
 def run_autfilt_stats(hoa_file: Path, stats_file: Path):
     """Show automaton stats via autfilt."""
-    print("[+] Automaton stats:")
+    logger.info("[+] Automaton stats:")
     with open(stats_file, "w") as f:
         subprocess.run(
             ["autfilt", "--stats=%s states, %e edges, %a acc-sets, %c SCCs, det=%d"],
@@ -108,10 +103,7 @@ def run_autfilt_accept(hoa_file: Path, trace: str, output_file: Path):
 def extract_outputs(tlsf_file: Path, outputs_file: Path):
     # run syfco to get outputs
     cmd = ["syfco", tlsf_file, "-outs"]
-    try:
-        res = subprocess.run(cmd, capture_output=True)
-    except Exception as e:
-        logging.error(f"Error: {e}")
+    res = subprocess.run(cmd, capture_output=True)
 
     output_params = res.stdout.decode("utf-8").strip().split(",")
     outputs_file.write_text(res.stdout.decode("utf-8"))
@@ -244,11 +236,7 @@ def evaluate_condition(condition: str, current_props: list, hoa_aps: list):
     # Replace logical operators
     eval_condition = eval_condition.replace("&", " and ").replace("|", " or ")
 
-    try:
-        return eval(eval_condition)
-    except Exception as e:
-        logging.error(f"Error evaluating condition '{condition}': {e}")
-        return False
+    return eval(eval_condition)
 
 
 def parse_required_inputs(condition: str, hoa_aps: list):
@@ -296,65 +284,61 @@ def trace_through_hoa(hoa_file_path: str, trace_str: str, effect_str: str):
         effect_time = x_count
 
     # Read and parse the HOA file
-    try:
-        with open(hoa_file_path, "r") as f:
-            hoa_content = f.read()
+    with open(hoa_file_path, "r") as f:
+        hoa_content = f.read()
 
-        # Extract the APs that this specific HOA uses
-        hoa_aps = extract_hoa_aps(hoa_content)
+    # Extract the APs that this specific HOA uses
+    hoa_aps = extract_hoa_aps(hoa_content)
 
-        # Parse HOA content to extract states and transitions
-        states = parse_hoa_states(hoa_content)
+    # Parse HOA content to extract states and transitions
+    states = parse_hoa_states(hoa_content)
 
-        # Find the start state
-        start_state = None
-        for line in hoa_content.split("\n"):
-            if line.startswith("Start:"):
-                start_state = int(line.split()[1])
-                break
+    # Find the start state
+    start_state = None
+    for line in hoa_content.split("\n"):
+        if line.startswith("Start:"):
+            start_state = int(line.split()[1])
+            break
 
-        if start_state is None:
-            return required_inputs
+    if start_state is None:
+        return required_inputs
 
-        current_state = start_state
+    current_state = start_state
 
-        # Trace through the automaton up to the effect time
-        for time_step in range(min(effect_time + 1, len(timesteps))):
-            current_props = timesteps[time_step]
+    # Trace through the automaton up to the effect time
+    for time_step in range(min(effect_time + 1, len(timesteps))):
+        current_props = timesteps[time_step]
 
-            # Filter current props to only include those relevant to this HOA
-            relevant_props = filter_props_for_hoa(current_props, hoa_aps)
+        # Filter current props to only include those relevant to this HOA
+        relevant_props = filter_props_for_hoa(current_props, hoa_aps)
 
-            # Find which transition is taken from current state
-            if current_state in states:
-                transitions = states[current_state]
-                next_state = None
-                required_condition = None
+        # Find which transition is taken from current state
+        if current_state in states:
+            transitions = states[current_state]
+            next_state = None
+            required_condition = None
 
-                # Check each transition to see which one matches current props
-                for condition, target_state in transitions:
-                    if evaluate_condition(condition, relevant_props, hoa_aps):
-                        next_state = target_state
-                        required_condition = condition
-                        break
-
-                if (
-                    required_condition and required_condition != "t"
-                ):  # "t" means always true
-                    required_inputs[time_step] = parse_required_inputs(
-                        required_condition, hoa_aps
-                    )
-                elif required_condition == "t":
-                    required_inputs[time_step] = ["no constraints"]
-
-                current_state = next_state
-
-                # Stop if we've reached the effect time
-                if time_step >= effect_time:
+            # Check each transition to see which one matches current props
+            for condition, target_state in transitions:
+                if evaluate_condition(condition, relevant_props, hoa_aps):
+                    next_state = target_state
+                    required_condition = condition
                     break
 
-    except Exception as e:
-        logging.error(f"Error tracing through HOA {hoa_file_path}: {e}")
+            if (
+                required_condition and required_condition != "t"
+            ):  # "t" means always true
+                required_inputs[time_step] = parse_required_inputs(
+                    required_condition, hoa_aps
+                )
+            elif required_condition == "t":
+                required_inputs[time_step] = ["no constraints"]
+
+            current_state = next_state
+
+            # Stop if we've reached the effect time
+            if time_step >= effect_time:
+                break
 
     return required_inputs
 
@@ -403,7 +387,7 @@ def check_causality(
                     temp_file.write(result.to_str())
 
                 effect_hoa_files[effect_str] = temp_path
-                print(f"Saved HOA for {effect_str} to {temp_path}")
+                logger.info(f"Saved HOA for {effect_str} to {temp_path}")
 
         # Second pass: trace through each effect's HOA to find required inputs
         for effect_str, hoa_path in effect_hoa_files.items():
@@ -421,16 +405,13 @@ def check_causality(
 
         return effect_inputs
 
-    except Exception as e:
-        logging.error(f"Error: {e}")
-        return {}
     finally:
         # Clean up temporary files
         for temp_path in effect_hoa_files.values():
             try:
                 os.unlink(temp_path)
-            except Exception as e:
-                logging.error(f"Error: {e}")
+            except OSError as e:
+                logging.warning(f"Could not delete temp file {temp_path}: {e}")
 
 
 def pipeline(tlsf_file: str, config_file: str):
@@ -452,48 +433,49 @@ def pipeline(tlsf_file: str, config_file: str):
     acceptance_log_file = results_dir / "acceptance.log"
     corp_log_file = results_dir / "corp.log"
 
-    print(f"[+] Running ltlsynt on {tlsf_file}")
-    run_ltlsynt(tlsf_path, hoa_file)
+    try:
+        logger.info(f"[+] Running ltlsynt on {tlsf_file}")
+        run_ltlsynt(tlsf_path, hoa_file)
 
-    aps = extract_hoa_aps(hoa_file.read_text())
+        aps = extract_hoa_aps(hoa_file.read_text())
 
-    print(f"[+] Running hoax on {hoa_file}")
-    run_hoax(hoa_file, hoax_file, Path(config_file), aps)
+        logger.info(f"[+] Running hoax on {hoa_file}")
+        run_hoax(hoa_file, hoax_file, Path(config_file), aps)
 
-    print("[+] Generating trace")
-    trace = generate_trace(hoax_file, aps)
-    trace_file.write_text(trace)
+        logger.info("[+] Generating trace")
+        trace = generate_trace(hoax_file, aps)
+        trace_file.write_text(trace)
 
-    print("[+] Automaton stats:")
-    run_autfilt_stats(hoa_file, stats_file)
+        logger.info("[+] Automaton stats:")
+        run_autfilt_stats(hoa_file, stats_file)
 
-    print("[+] Checking acceptance")
-    accepted = run_autfilt_accept(hoa_file, trace, accepted_file)
+        logger.info("[+] Checking acceptance")
+        accepted = run_autfilt_accept(hoa_file, trace, accepted_file)
 
-    with open(acceptance_log_file, "w") as f:
-        f.write("Pass.\n" if accepted else "Did not pass.\n")
+        with open(acceptance_log_file, "w") as f:
+            f.write("Pass.\n" if accepted else "Did not pass.\n")
 
-    print("[+] Extracting causal outputs")
-    output_params = extract_outputs(tlsf_path, outputs_file)
+        logger.info("[+] Extracting causal outputs")
+        output_params = extract_outputs(tlsf_path, outputs_file)
 
-    print("[+] Generate effects")
-    effects_arr = extract_effects(trace, output_params, effects_file)
+        logger.info("[+] Generate effects")
+        effects_arr = extract_effects(trace, output_params, effects_file)
 
-    print("[+] Generate causal traces")
-    causality = check_causality(
-        effects_arr, trace, hoa_file, causal_file, corp_log_file
-    )
+        logger.info("[+] Generate causal traces")
+        causality = check_causality(
+            effects_arr, trace, hoa_file, causal_file, corp_log_file
+        )
 
-    filename = results_dir / "reasoning.json"
-
-    # Open the file in write mode ('w') and use json.dump() to write the dictionary
-    with open(filename, "w") as f:
-        json.dump(causality, f, indent=4)
+    except Exception:
+        logger.exception("Pipeline failed")
+        raise
 
     return {
+        "hoa": hoa_file.read_text(),
         "aps": aps,
         "trace": trace,
         "accepted": accepted,
+        "effects": effects_arr,
         "causality": causality,  # Now returns the effect_inputs dictionary
     }
 
@@ -501,10 +483,10 @@ def pipeline(tlsf_file: str, config_file: str):
 # This should just run from main.py
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: pipeline.py <spec.tlsf>")
+        logger.error("Usage: pipeline.py <spec.tlsf>")
         sys.exit(1)
 
     result = pipeline(
         sys.argv[1], os.path.join(os.path.dirname(__file__), "random_config.py")
     )
-    print(result)
+    logger.info(result)

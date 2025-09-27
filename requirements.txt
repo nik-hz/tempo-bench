@@ -26,3 +26,4 @@ wheel==0.43.0
 pre-commit
 docformatter
 flake8-pyproject
+tqdm
