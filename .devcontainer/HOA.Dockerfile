@@ -19,7 +19,7 @@ FROM python:3.12.3-bookworm AS spot-builder
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential g++ make automake libtool pkg-config bison flex swig \
-    python3-dev python3-pip wget ca-certificates \
+    python3-dev wget ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 # spot version and checksum
@@ -44,10 +44,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     mona graphviz ca-certificates zsh curl git gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps (cache-friendly with requirements.txt)
-COPY requirements.txt .
-RUN python3 -m pip install --upgrade pip \
-    && python3 -m pip install --no-cache-dir -r requirements.txt
 
 # oh-my-zsh + powerlevel10k
 RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" "" --unattended \
@@ -62,6 +58,13 @@ COPY --from=spot-builder /usr/local /usr/local
 
 # Ensure runtime can find libspot
 ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+
+# Python deps (pin pip + deps in one step for reproducibility)
+COPY requirements.txt .
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && python3 -m pip install --no-cache-dir -r requirements.txt
+
+
 
 WORKDIR /tempo-rl
 CMD [ "zsh" ]
