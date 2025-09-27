@@ -8,10 +8,10 @@ import json
 import logging
 import os
 import sys
-from multiprocessing import Pool, Process, Queue, cpu_count
+from multiprocessing import Process, Queue, cpu_count
 from pathlib import Path
 
-from tqdm import tqdm
+from tqdm.contrib.concurrent import process_map
 
 from .pipeline import pipeline
 
@@ -73,15 +73,9 @@ def run_parallel(tlsf_dir, config_file, output_file, n_jobs=None, quiet=True):
     writer = Process(target=writer_process, args=(queue, output_file))
     writer.start()
 
-    with Pool(n_jobs) as pool:
-        for _ in tqdm(
-            pool.imap_unordered(
-                process_tlsf, [(f, config_file, queue, quiet) for f in tlsf_files]
-            ),
-            total=len(tlsf_files),
-            desc="Processing TLSF files",
-        ):
-            pass
+    args = [(f, config_file, queue, quiet) for f in tlsf_files]
+    process_map(process_tlsf, args, max_workers=n_jobs, desc="Processing TLSF files")
+
     # tell writer to finish
     queue.put("DONE")
     writer.join()
