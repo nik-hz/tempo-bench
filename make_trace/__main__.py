@@ -34,7 +34,11 @@ def set_logging_level(level=logging.WARNING):
 
 
 def process_tlsf(*args):
-    """Helper process."""
+    """Process a single TLSF file through the pipeline.
+
+    Unpacks args tuple (tlsf_file, config_file, queue, quiet) and runs pipeline. Results
+    or errors are sent to the queue for collection.
+    """
     tlsf_file, config_file, queue, quiet = args
     try:
         # Suppress logs in parallel mode if quiet is True
@@ -47,8 +51,10 @@ def process_tlsf(*args):
 
 
 def writer_process(queue, output_file):
-    """Writer process
-    args:
+    """Write pipeline results to output file as JSONL.
+
+    Continuously reads from queue until 'DONE' sentinel is received. Each result is
+    written as a JSON line and flushed immediately.
     """
 
     with open(output_file, "w", encoding="utf-8") as f:
@@ -62,6 +68,12 @@ def writer_process(queue, output_file):
 
 
 def run_parallel(tlsf_dir, config_file, output_file, n_jobs=None, quiet=True):
+    """Process all TLSF files in a directory in parallel.
+
+    Uses multiprocessing to run pipeline on multiple files concurrently. Results are
+    collected via queue and written to output_file as JSONL. n_jobs defaults to CPU
+    count if not specified.
+    """
     tlsf_files = [str(p) for p in Path(tlsf_dir).glob("*.tlsf")]
     if not tlsf_files:
         logging.error(f"No TLSF files found in {tlsf_dir}")
@@ -73,10 +85,10 @@ def run_parallel(tlsf_dir, config_file, output_file, n_jobs=None, quiet=True):
     writer = Process(target=writer_process, args=(queue, output_file))
     writer.start()
 
+    # ignore outputs of process_map
     args = [(f, config_file, queue, quiet) for f in tlsf_files]
     process_map(process_tlsf, args, max_workers=n_jobs, desc="Processing TLSF files")
 
-    # tell writer to finish
     queue.put("DONE")
     writer.join()
 
@@ -84,14 +96,12 @@ def run_parallel(tlsf_dir, config_file, output_file, n_jobs=None, quiet=True):
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == "-h" or sys.argv[1] not in ["-s", "-p"]:
         print(
-            "\
-            Usage: make_trace [-h] [-s <tlsf_file>] [-p <tlsf_dir>\
+            "Usage: make_trace [-h] [-s <tlsf_file>] [-p <tlsf_dir>\
                 <output_file> [n_jobs]]"
         )
         print(
             " \
-                -s: Process single TLSF file  |\
-                -p: Process directory in parallel"
+                -s: Process single TLSF file  | -p: Process directory in parallel"
         )
         print(
             """
