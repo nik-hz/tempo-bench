@@ -9,6 +9,8 @@ NOTES:
 If we give it a lot of traces, it can figure out the legal transitions
 """
 
+import json
+
 # import getopt
 import logging
 import os
@@ -403,6 +405,9 @@ def check_causality(
                 for time_step, conditions in inputs.items():
                     f.write(f"  Time {time_step}: {conditions}\n")
 
+        with open(output_file, "w") as f:
+            json.dump(effect_inputs, f, indent=4)
+
         return effect_inputs
 
     finally:
@@ -429,7 +434,7 @@ def pipeline(tlsf_file: str, config_file: str):
     accepted_file = results_dir / "05-autfilt.accepted.hoa"
     effects_file = results_dir / "06-effects.txt"
     outputs_file = results_dir / "07-outputs.txt"
-    causal_file = results_dir / "08-causal.hoa"
+    causal_file = results_dir / "08-causal.json"
     acceptance_log_file = results_dir / "acceptance.log"
     corp_log_file = results_dir / "corp.log"
 
