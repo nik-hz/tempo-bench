@@ -8,10 +8,10 @@ import json
 import logging
 import os
 import sys
-from multiprocessing import Process, Queue, cpu_count
+from multiprocessing import Manager, Pool, Process, cpu_count
 from pathlib import Path
 
-from tqdm.contrib.concurrent import process_map
+from tqdm import tqdm
 
 from .pipeline import pipeline
 
@@ -33,18 +33,18 @@ def set_logging_level(level=logging.WARNING):
         pipeline_logger.addHandler(handler)
 
 
-def process_tlsf(*args):
+def process_tlsf(args):
     """Process a single TLSF file through the pipeline.
 
     Unpacks args tuple (tlsf_file, config_file, queue, quiet) and runs pipeline. Results
     or errors are sent to the queue for collection.
     """
-    tlsf_file, config_file, queue, quiet = args
+    num_run, tlsf_file, config_file, queue, quiet = args
     try:
         # Suppress logs in parallel mode if quiet is True
         if quiet:
             set_logging_level(logging.WARNING)
-        result = pipeline(tlsf_file, config_file)
+        result = pipeline(tlsf_file, config_file, num_run)
         queue.put({"file": tlsf_file, "result": result, "error": None})
     except Exception as e:
         queue.put({"file": tlsf_file, "result": None, "error": str(e)})
@@ -67,7 +67,7 @@ def writer_process(queue, output_file):
             f.flush()  # stream safely to disk
 
 
-def run_parallel(tlsf_dir, config_file, output_file, n_jobs=None, quiet=True):
+def run_parallel(tlsf_dir, config_file, output_file, num_runs, n_jobs=None, quiet=True):
     """Process all TLSF files in a directory in parallel.
 
     Uses multiprocessing to run pipeline on multiple files concurrently. Results are
@@ -80,14 +80,26 @@ def run_parallel(tlsf_dir, config_file, output_file, n_jobs=None, quiet=True):
         return
 
     n_jobs = n_jobs or cpu_count()
-    queue = Queue()
+    manager = Manager()
+    queue = manager.Queue()
 
     writer = Process(target=writer_process, args=(queue, output_file))
     writer.start()
 
-    # ignore outputs of process_map
-    args = [(f, config_file, queue, quiet) for f in tlsf_files]
-    process_map(process_tlsf, args, max_workers=n_jobs, desc="Processing TLSF files")
+    with Pool(n_jobs) as pool:
+        for _ in tqdm(
+            pool.imap_unordered(
+                process_tlsf,
+                [
+                    (num_run, f, config_file, queue, quiet)
+                    for f in tlsf_files
+                    for num_run in range(num_runs)
+                ],
+            ),
+            total=len(tlsf_files) * num_runs,
+            desc="Processing TLSF files",
+        ):
+            pass
 
     queue.put("DONE")
     writer.join()
@@ -97,7 +109,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == "-h" or sys.argv[1] not in ["-s", "-p"]:
         print(
             "Usage: make_trace [-h] [-s <tlsf_file>] [-p <tlsf_dir>\
- <output_file> [n_jobs]]"
+ <output_file> [num_runs per file] [n_jobs]]"
         )
         print(
             " \
@@ -122,8 +134,9 @@ if __name__ == "__main__":
     elif sys.argv[1] == "-p":
         tlsf_dir = sys.argv[2]
         output_file = sys.argv[3]
-        n_jobs = int(sys.argv[4]) if len(sys.argv) > 4 else 5
+        num_runs = int(sys.argv[4]) if len(sys.argv) > 4 else None
+        n_jobs = int(sys.argv[5]) if len(sys.argv) > 5 else 5
 
         # Set logging to WARNING for parallel processing to reduce noise
         set_logging_level(logging.WARNING)
-        run_parallel(tlsf_dir, config_file, output_file, n_jobs, quiet=True)
+        run_parallel(tlsf_dir, config_file, output_file, num_runs, n_jobs, quiet=True)

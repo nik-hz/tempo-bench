@@ -124,6 +124,7 @@ def extract_effects(
     """
 
     # NOTE there may be some better way of doing this, but it should be O(N)
+    # TODO there seems to be some bug where it is only extracting one effect type
     indexed_trace = [s.split("&") for s in trace.strip().split(";")[:-1]]
 
     effects_str = ""
@@ -419,9 +420,9 @@ def check_causality(
                 logging.warning(f"Could not delete temp file {temp_path}: {e}")
 
 
-def pipeline(tlsf_file: str, config_file: str):
+def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
     tlsf_path = Path(tlsf_file)
-    base = tlsf_path.stem
+    base = tlsf_path.stem + "_" + str(num_run)
 
     # Create results/<specname> directory
     results_dir = Path("results") / base

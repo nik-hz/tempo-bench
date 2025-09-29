@@ -8,6 +8,7 @@
 results/
 tlsf_specs/
 *.tar.gz
+*.jsonl
 
 # test files
 *.hoa
