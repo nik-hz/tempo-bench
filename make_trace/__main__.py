@@ -97,7 +97,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] == "-h" or sys.argv[1] not in ["-s", "-p"]:
         print(
             "Usage: make_trace [-h] [-s <tlsf_file>] [-p <tlsf_dir>\
-                <output_file> [n_jobs]]"
+ <output_file> [n_jobs]]"
         )
         print(
             " \
