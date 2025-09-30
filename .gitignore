@@ -6,7 +6,7 @@
 
 # inputs and results
 results/
-tlsf_specs/
+# tlsf_specs/
 *.tar.gz
 *.jsonl
 
@@ -14,3 +14,6 @@ tlsf_specs/
 *.hoa
 *.tlsf
 *.trace
+
+# add the tlsf files
+!tlsf_specs/*
