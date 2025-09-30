@@ -12,17 +12,17 @@
             font-family: 'Arial', sans-serif;
             color: white;
         }
-        
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
         }
-        
+
         .header {
             text-align: center;
             margin-bottom: 30px;
         }
-        
+
         .title {
             font-size: 2em;
             background: linear-gradient(45deg, #4facfe, #00f2fe);
@@ -30,7 +30,7 @@
             -webkit-text-fill-color: transparent;
             margin-bottom: 10px;
         }
-        
+
         .score-board {
             background: rgba(255, 255, 255, 0.1);
             padding: 15px;
@@ -41,12 +41,12 @@
             margin-bottom: 20px;
             backdrop-filter: blur(5px);
         }
-        
+
         .score {
             font-size: 1.2em;
             font-weight: bold;
         }
-        
+
         .target-effect {
             background: rgba(243, 156, 18, 0.3);
             padding: 10px 20px;
@@ -54,14 +54,14 @@
             border: 2px solid #f39c12;
             font-family: monospace;
         }
-        
+
         .game-area {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 15px;
             padding: 20px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .timestep-header {
             display: flex;
             justify-content: space-between;
@@ -71,23 +71,23 @@
             background: rgba(255, 255, 255, 0.1);
             border-radius: 10px;
         }
-        
+
         .timestep-info {
             font-size: 1.1em;
             font-weight: bold;
         }
-        
+
         .effect-countdown {
             font-family: monospace;
             color: #f39c12;
             font-size: 0.9em;
         }
-        
+
         .navigation {
             display: flex;
             gap: 10px;
         }
-        
+
         .nav-btn {
             padding: 8px 16px;
             background: rgba(52, 152, 219, 0.2);
@@ -97,24 +97,24 @@
             cursor: pointer;
             transition: all 0.3s ease;
         }
-        
+
         .nav-btn:hover:not(.disabled) {
             background: rgba(52, 152, 219, 0.4);
             box-shadow: 0 0 15px #3498db;
         }
-        
+
         .nav-btn.disabled {
             opacity: 0.3;
             cursor: not-allowed;
         }
-        
+
         .inputs-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-bottom: 30px;
         }
-        
+
         .input-card {
             background: rgba(255, 255, 255, 0.05);
             border: 2px solid transparent;
@@ -129,75 +129,75 @@
             flex-direction: column;
             justify-content: center;
         }
-        
+
         .input-card:hover {
             background: rgba(255, 255, 255, 0.1);
             transform: translateY(-2px);
         }
-        
+
         .input-card.selected {
             border-color: #f39c12;
             background: rgba(243, 156, 18, 0.2);
             box-shadow: 0 0 20px rgba(243, 156, 18, 0.3);
         }
-        
+
         .input-card.correct {
             border-color: #2ecc71;
             background: rgba(46, 204, 113, 0.2);
             box-shadow: 0 0 20px rgba(46, 204, 113, 0.3);
             animation: correctPulse 1s ease;
         }
-        
+
         .input-card.incorrect {
             border-color: #e74c3c;
             background: rgba(231, 76, 60, 0.2);
             box-shadow: 0 0 20px rgba(231, 76, 60, 0.3);
             animation: incorrectShake 0.5s ease;
         }
-        
+
         .input-card.necessary {
             border-color: #9b59b6;
             background: rgba(155, 89, 182, 0.2);
             box-shadow: 0 0 20px rgba(155, 89, 182, 0.3);
         }
-        
+
         .input-card.inactive {
             opacity: 0.3;
             cursor: not-allowed;
         }
-        
+
         @keyframes correctPulse {
             0%, 100% { transform: scale(1); }
             50% { transform: scale(1.05); }
         }
-        
+
         @keyframes incorrectShake {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-5px); }
             75% { transform: translateX(5px); }
         }
-        
+
         .input-name {
             font-weight: bold;
             margin-bottom: 5px;
             font-family: monospace;
             font-size: 1.1em;
         }
-        
+
         .input-value {
             font-size: 0.9em;
             opacity: 0.8;
             font-weight: bold;
         }
-        
+
         .input-value.true {
             color: #2ecc71;
         }
-        
+
         .input-value.false {
             color: #e74c3c;
         }
-        
+
         .input-status {
             position: absolute;
             top: -5px;
@@ -211,29 +211,29 @@
             font-size: 12px;
             font-weight: bold;
         }
-        
+
         .input-status.correct {
             background: #2ecc71;
             color: white;
         }
-        
+
         .input-status.incorrect {
             background: #e74c3c;
             color: white;
         }
-        
+
         .input-status.necessary {
             background: #9b59b6;
             color: white;
         }
-        
+
         .actions {
             display: flex;
             justify-content: center;
             gap: 15px;
             margin-bottom: 20px;
         }
-        
+
         .action-btn {
             padding: 12px 24px;
             border: 2px solid;
@@ -243,37 +243,37 @@
             transition: all 0.3s ease;
             background: transparent;
         }
-        
+
         .check-btn {
             color: #2ecc71;
             border-color: #2ecc71;
         }
-        
+
         .check-btn:hover {
             background: rgba(46, 204, 113, 0.2);
             box-shadow: 0 0 15px #2ecc71;
         }
-        
+
         .reveal-btn {
             color: #9b59b6;
             border-color: #9b59b6;
         }
-        
+
         .reveal-btn:hover {
             background: rgba(155, 89, 182, 0.2);
             box-shadow: 0 0 15px #9b59b6;
         }
-        
+
         .reset-btn {
             color: #e74c3c;
             border-color: #e74c3c;
         }
-        
+
         .reset-btn:hover {
             background: rgba(231, 76, 60, 0.2);
             box-shadow: 0 0 15px #e74c3c;
         }
-        
+
         .feedback {
             text-align: center;
             padding: 15px;
@@ -282,25 +282,25 @@
             font-weight: bold;
             transition: all 0.3s ease;
         }
-        
+
         .feedback.success {
             background: rgba(46, 204, 113, 0.2);
             border: 1px solid #2ecc71;
             color: #2ecc71;
         }
-        
+
         .feedback.partial {
             background: rgba(243, 156, 18, 0.2);
             border: 1px solid #f39c12;
             color: #f39c12;
         }
-        
+
         .feedback.failure {
             background: rgba(231, 76, 60, 0.2);
             border: 1px solid #e74c3c;
             color: #e74c3c;
         }
-        
+
         .trace-display {
             background: rgba(0, 0, 0, 0.3);
             padding: 15px;
@@ -310,27 +310,27 @@
             margin-top: 15px;
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .trace-steps {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             margin-top: 10px;
         }
-        
+
         .trace-step {
             padding: 5px 10px;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
             font-size: 11px;
         }
-        
+
         .trace-step.current {
             background: rgba(243, 156, 18, 0.3);
             color: #f39c12;
             font-weight: bold;
         }
-        
+
         .constraint-display {
             margin-top: 10px;
             padding: 10px;
@@ -350,7 +350,7 @@
                 <div class="score">Accuracy: <span id="accuracy">0%</span></div>
             </div>
         </div>
-        
+
         <div class="game-area">
             <div class="timestep-header">
                 <div class="timestep-info">
@@ -362,24 +362,24 @@
                     <button class="nav-btn" id="next-btn" onclick="nextTimestep()">Next →</button>
                 </div>
             </div>
-            
+
             <div class="inputs-grid" id="inputs-grid">
                 <!-- Input cards will be populated here -->
             </div>
-            
+
             <div class="actions">
                 <button class="action-btn check-btn" onclick="checkAnswers()">Check Selection</button>
                 <button class="action-btn reveal-btn" onclick="revealAnswers()">Show Required Constraints</button>
                 <button class="action-btn reset-btn" onclick="resetTimestep()">Reset Timestep</button>
             </div>
-            
+
             <div id="feedback" class="feedback" style="display: none;"></div>
-            
+
             <div class="trace-display">
                 <strong>Trace leading to effect XXXXXXXX g_0:</strong>
                 <div class="trace-steps" id="trace-steps"></div>
                 <div class="constraint-display">
-                    <strong>Required constraints at this timestep:</strong> 
+                    <strong>Required constraints at this timestep:</strong>
                     <span id="current-constraints">Select timestep to see constraints</span>
                 </div>
             </div>
@@ -393,7 +393,7 @@
             effectTimestep: 8, // Effect occurs 8 timesteps in the future
             trace: [
                 "!g_0&r_0&!g_1&r_1",   // T0
-                "!g_0&r_0&g_1&r_1",    // T1  
+                "!g_0&r_0&g_1&r_1",    // T1
                 "g_0&!r_0&!g_1&!r_1",  // T2
                 "!g_0&!r_0&!g_1&!r_1", // T3
                 "!g_0&!r_0&!g_1&r_1",  // T4
@@ -435,9 +435,9 @@
             document.getElementById('target-effect').textContent = coffeeData.targetEffect;
             document.getElementById('score').textContent = score;
             document.getElementById('total-score').textContent = totalAttempts;
-            document.getElementById('accuracy').textContent = 
+            document.getElementById('accuracy').textContent =
                 totalAttempts > 0 ? Math.round((correctAttempts / totalAttempts) * 100) + '%' : '0%';
-            
+
             // Update effect countdown
             const stepsToEffect = coffeeData.effectTimestep - currentTimestep;
             const countdownElement = document.querySelector('.effect-countdown');
@@ -451,7 +451,7 @@
                 countdownElement.textContent = "Effect already occurred";
                 countdownElement.style.color = "#95a5a6";
             }
-            
+
             // Update navigation buttons
             document.getElementById('prev-btn').classList.toggle('disabled', currentTimestep === 0);
             document.getElementById('next-btn').classList.toggle('disabled', currentTimestep === coffeeData.trace.length - 1);
@@ -461,26 +461,26 @@
             const grid = document.getElementById('inputs-grid');
             const currentTrace = coffeeData.trace[currentTimestep];
             const traceValues = parseTraceStep(currentTrace);
-            
+
             grid.innerHTML = '';
-            
+
             coffeeData.atomicPropositions.forEach(ap => {
                 const card = document.createElement('div');
                 card.className = 'input-card';
                 card.dataset.input = ap;
-                
+
                 const value = traceValues[ap];
                 const displayValue = value ? 'TRUE' : 'FALSE';
                 const valueClass = value ? 'true' : 'false';
-                
+
                 card.innerHTML = `
                     <div class="input-name">${ap}</div>
                     <div class="input-value ${valueClass}">${displayValue}</div>
                     <div class="input-status"></div>
                 `;
-                
+
                 card.addEventListener('click', () => toggleInputSelection(ap, card));
-                
+
                 grid.appendChild(card);
             });
 
@@ -490,11 +490,11 @@
         function parseTraceStep(traceStep) {
             const values = {};
             const conditions = traceStep.split('&');
-            
+
             coffeeData.atomicPropositions.forEach(ap => {
                 values[ap] = false; // Default to false
             });
-            
+
             conditions.forEach(condition => {
                 if (condition.startsWith('!')) {
                     const ap = condition.substring(1);
@@ -503,7 +503,7 @@
                     values[condition] = true;
                 }
             });
-            
+
             return values;
         }
 
@@ -521,22 +521,22 @@
             const constraintStrings = coffeeData.reasoning[currentTimestep.toString()] || [];
             const correctInputs = parseConstraints(constraintStrings);
             const cards = document.querySelectorAll('.input-card');
-            
+
             let correctSelections = 0;
             let totalCorrect = correctInputs.length;
             let hasConstraints = constraintStrings[0] !== "no constraints";
-            
+
             cards.forEach(card => {
                 const input = card.dataset.input;
                 const isSelected = selectedInputs.includes(input);
                 const isNecessary = correctInputs.includes(input);
-                
+
                 // Clear previous states
                 card.classList.remove('correct', 'incorrect', 'necessary');
                 const status = card.querySelector('.input-status');
                 status.className = 'input-status';
                 status.textContent = '';
-                
+
                 if (isSelected && isNecessary) {
                     card.classList.add('correct');
                     status.classList.add('correct');
@@ -550,10 +550,10 @@
             });
 
             totalAttempts++;
-            
+
             let feedbackMessage;
             let feedbackClass;
-            
+
             if (!hasConstraints) {
                 if (selectedInputs.length === 0) {
                     feedbackMessage = "Correct! No constraints are required at this timestep.";
@@ -586,7 +586,7 @@
             if (constraintStrings[0] === "no constraints") {
                 return [];
             }
-            
+
             const inputs = new Set();
             constraintStrings.forEach(constraint => {
                 // Parse constraints like "r_0 AND r_1", "!r_1", "r_0 AND !r_1"
@@ -596,7 +596,7 @@
                     inputs.add(cleanPart);
                 });
             });
-            
+
             return Array.from(inputs);
         }
 
@@ -604,11 +604,11 @@
             const constraintStrings = coffeeData.reasoning[currentTimestep.toString()] || [];
             const correctInputs = parseConstraints(constraintStrings);
             const cards = document.querySelectorAll('.input-card');
-            
+
             cards.forEach(card => {
                 const input = card.dataset.input;
                 const isNecessary = correctInputs.includes(input);
-                
+
                 if (isNecessary) {
                     card.classList.add('necessary');
                     const status = card.querySelector('.input-status');
@@ -620,7 +620,7 @@
             const message = constraintStrings[0] === "no constraints"
                 ? "No constraints are required at this timestep."
                 : `Required constraint inputs: ${correctInputs.join(', ')} (Constraint: ${constraintStrings.join(' | ')})`;
-            
+
             showFeedback(message, "partial");
         }
 

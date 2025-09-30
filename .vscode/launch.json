@@ -5,16 +5,26 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: pipeline.py with args",
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python: make_trace -p",
             "type": "debugpy",
             "request": "launch",
             // "program": "make_trace/pipeline.py",
-            "module": "make_trace.pipeline",
+            "module": "make_trace",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "${workspaceFolder}/tlsf_specs/spurious_arbiter.tlsf",
-                "${workspaceFolder}/random_config.toml"
+                "-p",
+                "${workspaceFolder}/tlsf_specs",
+                "debug.jsonl",
+                "2",
+                "2"
             ],
             "env": {
                 "PATH": "/usr/local/bin:${env:PATH}",
