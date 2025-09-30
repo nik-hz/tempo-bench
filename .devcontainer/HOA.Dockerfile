@@ -57,7 +57,7 @@ COPY --from=syfco-builder /out/syfco /usr/local/bin/syfco
 COPY --from=spot-builder /usr/local /usr/local
 
 # Ensure runtime can find libspot
-ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 
 # Python deps (pin pip + deps in one step for reproducibility)
 COPY requirements.txt .

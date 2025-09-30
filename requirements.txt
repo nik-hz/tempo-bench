@@ -1,3 +1,9 @@
+torch==2.8.0; platform_machine == "x86_64"
+triton==3.4.0; platform_machine == "x86_64"
+
+# for ARM64
+torch==2.5.1; platform_machine == "aarch64"
+
 cfgv==3.4.0
 charset-normalizer==3.4.3
 click==8.1.8
@@ -42,22 +48,4 @@ nvidia-nvjitlink-cu12==12.8.93
 nvidia-nvtx-cu12==12.8.90
 platformdirs==4.4.0
 pre_commit==4.3.0
-pycodestyle==2.14.0
-pyflakes==3.4.0
-Pygments==2.19.2
-PyYAML==6.0.3
-rich==14.1.0
-Scarlet-ltl==0.0.4
-scipy==1.16.2
-setuptools==69.5.1
-shellingham==1.5.4
-sympy==1.14.0
-tomli==2.2.1
-torch==2.8.0
-tqdm==4.67.1
-triton==3.4.0
-typer==0.15.4
-typing_extensions==4.15.0
-untokenize==0.1.1
-virtualenv==20.34.0
-wheel==0.43.0
+pycodestyle==2.14

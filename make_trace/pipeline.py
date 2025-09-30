@@ -18,6 +18,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 
 import spot
@@ -35,11 +36,17 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/local/lib:" + os.environ.get(
 )
 
 
-def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
+def run_ltlsynt(tlsf_file: Path, hoa_file: Path, timeout: int = 300):
     """Run ltlsynt on a TLSF file, strip the first line, and save HOA."""
     cmd = ["ltlsynt", "--tlsf", str(tlsf_file)]
     logging.debug(f"Running command: {' '.join(cmd)}")
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    res = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=True,
+    )
     # Drop first line
     lines = res.stdout.splitlines()[1:]
     hoa_file.write_text("\n".join(lines))
@@ -51,11 +58,19 @@ def make_replacement(aps):
     return "{" + ", ".join(parts) + "}"
 
 
-def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
+def run_hoax(
+    hoa_file: Path, hoax_file: Path, config_file: Path, aps, timeout: int = 300
+):
     """Run hoax with config, clean its output, and save result."""
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
 
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    res = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=True,
+    )
 
     # Drop last line (like `sed '$d'`)
     lines = res.stdout.strip().splitlines()[:-1]
@@ -94,10 +109,14 @@ def run_autfilt_stats(hoa_file: Path, stats_file: Path):
         )
 
 
-def run_autfilt_accept(hoa_file: Path, trace: str, output_file: Path):
+def run_autfilt_accept(
+    hoa_file: Path, trace: str, output_file: Path, timeout: int = 300
+):
     """Check acceptance of a trace in automaton using autfilt."""
     cmd = ["autfilt", f"--accept-word={trace}"]
-    res = subprocess.run(cmd, input=hoa_file.read_bytes(), capture_output=True)
+    res = subprocess.run(
+        cmd, input=hoa_file.read_bytes(), timeout=timeout, capture_output=True
+    )
     output_file.write_bytes(res.stdout)
     return res.returncode == 0
 
@@ -346,8 +365,19 @@ def trace_through_hoa(hoa_file_path: str, trace_str: str, effect_str: str):
     return required_inputs
 
 
+def synthesis_helper(system, trace, effect, timeout=300):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(cause.synthesize, system, trace, effect, False, False)
+        return future.result(timeout=timeout)
+
+
 def check_causality(
-    effects_arr: list, trace_str: str, hoa_file: Path, output_file: Path, log_file: Path
+    effects_arr: list,
+    trace_str: str,
+    hoa_file: Path,
+    output_file: Path,
+    log_file: Path,
+    timeout: int = 300,
 ):
     """Modified to save HOA files for each effect and trace through them to find
     required inputs at each timestep."""
@@ -370,8 +400,14 @@ def check_causality(
                 "small",
                 "high",
             )
-
-            result = cause.synthesize(system, trace, effect, False, False)
+            """Multithreaded iplementatio of synthesis for timtout catching."""
+            # NOTE: some multithreading here
+            try:
+                result = synthesis_helper(system, trace, effect, timeout=timeout)
+            except TimeoutError:
+                logger.warning(f"synthesize timed out after {timeout}s")
+                continue
+            # result = cause.synthesize(system, trace, effect, False, False)
 
             if result.is_empty():
                 log_str += f"No cause found for {effect_str}\n"
@@ -472,6 +508,9 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
             effects_arr, trace, hoa_file, causal_file, corp_log_file
         )
 
+    except subprocess.TimeoutExpired:
+        logger.exception("Timeout running")
+        return None
     except Exception:
         logger.exception("Pipeline failed")
         raise
