@@ -9,6 +9,9 @@
     "features": {
         "ghcr.io/devcontainers/features/github-cli:1": {}
     },
+    "runArgs": [
+        "--network=host"
+    ],
     "customizations": {
         "vscode": {
             "settings": {
