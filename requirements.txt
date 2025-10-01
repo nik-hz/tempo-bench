@@ -49,3 +49,4 @@ nvidia-nvtx-cu12==12.8.90
 platformdirs==4.4.0
 pre_commit==4.3.0
 pycodestyle==2.14
+tqdm==4.67.1

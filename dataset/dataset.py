@@ -1,10 +1,29 @@
 import ast
 import json
+import re
 
 # import torch
 from torch.utils.data import Dataset
 
 # from pathlib import Path
+
+
+def replace_indices_with_APs(line: str, aps: list[str]) -> str:
+    """Replace only AP indices inside [...] with their AP names.
+
+    Leaves state numbers outside the brackets unchanged.
+    """
+
+    def repl(match):
+        idx = int(match.group(0))
+        if 0 <= idx < len(aps):
+            return aps[idx]
+        return match.group(0)  # leave as is if not a valid AP index
+
+    # process only the [...] section
+    return re.sub(
+        r"\[(.*?)\]", lambda m: "[" + re.sub(r"\b\d+\b", repl, m.group(1)) + "]", line
+    )
 
 
 class TempoBench_Dataset(Dataset):
@@ -26,6 +45,7 @@ class TempoBench_Dataset(Dataset):
         hoa:  full HOA string
         """
         # hoa = result["hoa"]
+        aps = result["aps"]
         hoax = result["hoax"]
 
         # TODO extract the state rules for each state from the hoa
@@ -34,13 +54,17 @@ class TempoBench_Dataset(Dataset):
             _, tup_str = line.split(":", 1)
             start, inputs, nxt = ast.literal_eval(tup_str.strip())
             inputs_list = sorted(list(inputs))  # stable order
-            if inputs_list:
+            inputs_list_named = [
+                aps[int(ap.split("_")[-1])] if ap.isdigit() else ap
+                for ap in inputs_list
+            ]
+            if inputs_list_named:
                 inputs_str = " and ".join(inputs_list)
             else:
                 inputs_str = "no inputs"
             nl_transitions.append(
-                f"From state {start},"
-                f"on inputs {inputs_str},"
+                f"From state {start}, "
+                f"on inputs {inputs_str}, "
                 f"the automaton moves to state {nxt}."
             )
 
@@ -57,16 +81,21 @@ class TempoBench_Dataset(Dataset):
         result = self.data[idx]["result"]
 
         if self.task == "trace_acceptance":
+            aps = result["aps"]
+            hoa_pretty = "\n".join(
+                replace_indices_with_APs(line, aps)
+                for line in result["hoa"].splitlines()
+            )
             prompt = (
                 f"You are given an automaton (HOA format) with APs {result['aps']}.\n\n"
-                f"Automaton:\n{result['hoa']}\n\n"
+                f"Automaton:\n{hoa_pretty}\n\n"
                 f"Trace:\n{result['trace']}\n\n"
-                f"Question: Does the automaton accept this trace?"
+                f"Question: Does the automaton accept this trace? "
                 "Solve this by stepping trough the state machine."
             )
             label = (
                 f"{self.construct_acceptance_trace(result=result)}\n\n"
-                f"{"Yes" if result["accepted"] else "No"}"
+                f"{"Accepted: Yes" if result["accepted"] else "Accepted: No"}"
             )
 
             if self.tokenizer:
