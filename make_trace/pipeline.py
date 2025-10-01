@@ -81,6 +81,7 @@ def run_hoax(
     content = re.sub(r"set\(\)", replacement, content)
 
     hoax_file.write_text(content)
+    return content
 
 
 def generate_trace(hoax_file: Path, aps):
@@ -405,7 +406,7 @@ def check_causality(
             try:
                 result = synthesis_helper(system, trace, effect, timeout=timeout)
             except TimeoutError:
-                logger.warning(f"synthesize timed out after {timeout}s")
+                logger.warning(f"Synthesize timed out after {timeout}s")
                 continue
             # result = cause.synthesize(system, trace, effect, False, False)
 
@@ -482,7 +483,7 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
         aps = extract_hoa_aps(hoa_file.read_text())
 
         logger.info(f"[+] Running hoax on {hoa_file}")
-        run_hoax(hoa_file, hoax_file, Path(config_file), aps)
+        hoax = run_hoax(hoa_file, hoax_file, Path(config_file), aps)
 
         logger.info("[+] Generating trace")
         trace = generate_trace(hoax_file, aps)
@@ -510,7 +511,7 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
 
     except subprocess.TimeoutExpired:
         logger.exception("Timeout running")
-        return None
+        return {"status": "timeout"}
     except Exception:
         logger.exception("Pipeline failed")
         raise
@@ -519,6 +520,7 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
         "hoa": hoa_file.read_text(),
         "aps": aps,
         "trace": trace,
+        "hoax": hoax,
         "accepted": accepted,
         "effects": effects_arr,
         "causality": causality,  # Now returns the effect_inputs dictionary
