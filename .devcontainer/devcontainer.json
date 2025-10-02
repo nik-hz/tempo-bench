@@ -56,5 +56,5 @@
         }
     },
     "overrideCommand": true,
-    "postCreateCommand": "pre-commit install"
+    "postCreateCommand": "pre-commit install && git clone https://github.com/nik-hz/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && ./install.sh"
 }
