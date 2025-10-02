@@ -413,7 +413,7 @@ def check_causality(
                 result = synthesis_helper(system, trace, effect, timeout=timeout)
             except TimeoutError:
                 logger.warning(f"Synthesize timed out after {timeout}s")
-                continue
+                break  # unlikely to be able to solve harder effects
             # result = cause.synthesize(system, trace, effect, False, False)
 
             if result.is_empty():
