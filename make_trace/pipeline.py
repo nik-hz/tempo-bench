@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from datetime import datetime
 from pathlib import Path
 
 import spot
@@ -467,7 +468,8 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0, timeout: int = 
     base = tlsf_path.stem + "_" + str(num_run)
 
     # Create results/<specname> directory
-    results_dir = Path("results") / base
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_dir = Path("results") / f"results_{ts}" / base
     results_dir.mkdir(parents=True, exist_ok=True)
 
     hoa_file = results_dir / "01-system.hoa"
