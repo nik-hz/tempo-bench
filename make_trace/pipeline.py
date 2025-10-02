@@ -516,7 +516,8 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0, timeout: int = 
 
     except subprocess.TimeoutExpired:
         logger.exception("Timeout running")
-        return {"status": "timeout"}
+        # return {"status": "timeout"}
+        raise
     except Exception:
         logger.exception("Pipeline failed")
         raise
