@@ -409,14 +409,14 @@ def check_causality(
                 "small",
                 "high",
             )
-            """Multithreaded iplementatio of synthesis for timtout catching."""
-            # NOTE: some multithreading here
+            """Multithreaded iplementatio of synthesis for timeout catching."""
             try:
                 result = synthesis_helper(system, trace, effect, timeout=timeout)
             except TimeoutError:
-                logger.warning(f"Synthesize timed out after {timeout}s")
+                logger.warning(
+                    f"Synthesize timed out after {timeout}s in check_causality()"
+                )
                 break  # unlikely to be able to solve harder effects
-            # result = cause.synthesize(system, trace, effect, False, False)
 
             if result.is_empty():
                 log_str += f"No cause found for {effect_str}\n"
