@@ -72,6 +72,7 @@ class TempoBench_Dataset(Dataset):
         prompt = (
             "These are the corresponding state transitions to the automaton:\n\n"
             + "\n".join(nl_transitions)
+            + f"{json.dumps(hoax, indent=2)}"
         )
         return prompt
 
