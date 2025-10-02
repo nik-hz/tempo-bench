@@ -15,7 +15,6 @@
             "name": "Python: make_trace -p",
             "type": "debugpy",
             "request": "launch",
-            // "program": "make_trace/pipeline.py",
             "module": "make_trace",
             "console": "integratedTerminal",
             "justMyCode": true,
@@ -23,8 +22,25 @@
                 "-p",
                 "${workspaceFolder}/tlsf_specs",
                 "debug.jsonl",
-                "2",
-                "2"
+                "1",
+                "1",
+                "10"
+            ],
+            "env": {
+                "PATH": "/usr/local/bin:${env:PATH}",
+                "LD_LIBRARY_PATH": "/usr/local/lib:${env:LD_LIBRARY_PATH}"
+            }
+        },
+        {
+            "name": "Python: make_trace -s",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "make_trace",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "-s",
+                "${workspaceFolder}/tlsf_specs/spurious_arbiter.tlsf",
             ],
             "env": {
                 "PATH": "/usr/local/bin:${env:PATH}",

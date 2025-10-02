@@ -1,6 +1,7 @@
 import ast
 import json
 import re
+import sys
 
 # import torch
 from torch.utils.data import Dataset
@@ -121,10 +122,21 @@ if __name__ == "__main__":
 
     # Use a small JSONL file (maybe 1–2 lines from your sample)
     path = "sample.jsonl"  # adjust to your file
-    ds = TempoBench_Dataset(path, tokenizer=None, task="trace_acceptance")
 
-    print(f"Loaded {len(ds)} items")
-    print("--- First item ---")
-    prompt, label = ds[0]
-    print("Prompt:\n", prompt)  # truncate for readability
-    print("Label:", label)
+    if sys.argv[1] == "-t":
+        ds = TempoBench_Dataset(path, tokenizer=None, task="trace_acceptance")
+
+        print(f"Loaded {len(ds)} items")
+        print("--- First item ---")
+        prompt, label = ds[0]
+        print("Prompt:\n", prompt)  # truncate for readability
+        print("Label:", label)
+
+    elif sys.argv[1] == "-c":
+        ds = TempoBench_Dataset(path, tokenizer=None, task="causality")
+
+        print(f"Loaded {len(ds)} items")
+        print("--- First item ---")
+        prompt, label = ds[0]
+        print("Prompt:\n", prompt)
+        print("Label:\n", label)

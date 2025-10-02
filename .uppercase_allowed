@@ -8,3 +8,6 @@ Dockerfile
 # Ignore readmes and Licences
 LICENSE
 README.md
+
+# Ignore tlsf files
+*.tlsf

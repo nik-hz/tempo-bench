@@ -14,11 +14,14 @@ import json
 # import getopt
 import logging
 import os
+import pickle
 import re
+import signal
 import subprocess
 import sys
 import tempfile
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
+import time
+from concurrent.futures import TimeoutError
 from datetime import datetime
 from pathlib import Path
 
@@ -374,12 +377,6 @@ def trace_through_hoa(hoa_file_path: str, trace_str: str, effect_str: str):
     return required_inputs
 
 
-def synthesis_helper(system, trace, effect, timeout=300):
-    with ThreadPoolExecutor(max_workers=1) as executor:
-        future = executor.submit(cause.synthesize, system, trace, effect, False, False)
-        return future.result(timeout=timeout)
-
-
 def check_causality(
     effects_arr: list,
     trace_str: str,
@@ -398,71 +395,107 @@ def check_causality(
     effect_hoa_files = {}
     # Dictionary to store effect -> required inputs mapping
     effect_inputs = {}
+    """Aiaiaiai, I have to do this manually to...
 
-    try:
-        # First pass: generate HOA files for each effect
-        for effect_str in effects_arr:
-            effect = spot.postprocess(
-                spot.translate(spot.formula("!(" + effect_str.strip() + ")")),
-                "buchi",
-                "state-based",
-                "small",
-                "high",
-            )
-            """Multithreaded iplementatio of synthesis for timtout catching."""
-            # NOTE: some multithreading here
-            try:
-                result = synthesis_helper(system, trace, effect, timeout=timeout)
-            except TimeoutError:
-                logger.warning(f"Synthesize timed out after {timeout}s")
-                break  # unlikely to be able to solve harder effects
-            # result = cause.synthesize(system, trace, effect, False, False)
+    Let's hope I paid attention in ap and os
+    """
+    # TODO: write some unit tests for this specific function!
 
-            if result.is_empty():
-                log_str += f"No cause found for {effect_str}\n"
-            else:
-                log_str += f"Cause found for {effect_str}\n"
+    r, w = os.pipe()
+    pid = os.fork()
 
-                # Create temporary file for this effect's HOA
-                temp_fd, temp_path = tempfile.mkstemp(
-                    suffix=".hoa",
-                    prefix=f'effect_{effect_str.replace(" ", "_").replace("X", "")}_',
+    if pid == 0:  # the child runs the code, parent just kills it
+        os.close(r)
+        return_obj = None
+        try:
+            # First pass: generate HOA files for each effect
+            for effect_str in effects_arr:
+                effect = spot.postprocess(
+                    spot.translate(spot.formula("!(" + effect_str.strip() + ")")),
+                    "buchi",
+                    "state-based",
+                    "small",
+                    "high",
                 )
-                os.close(temp_fd)  # Close the file descriptor
+                try:
+                    result = cause.synthesize(system, trace, effect, False, False)
+                except TimeoutError:
+                    logger.warning(
+                        f"Synthesize timed out after {timeout}s in check_causality()"
+                    )
+                    break  # unlikely to be able to solve harder effects
 
-                # Write HOA content to temp file
-                with open(temp_path, "w") as temp_file:
-                    temp_file.write(result.to_str())
+                if result.is_empty():
+                    log_str += f"No cause found for {effect_str}\n"
+                else:
+                    log_str += f"Cause found for {effect_str}\n"
 
-                effect_hoa_files[effect_str] = temp_path
-                logger.info(f"Saved HOA for {effect_str} to {temp_path}")
+                    # Create temporary file for this effect's HOA
+                    temp_fd, temp_path = tempfile.mkstemp(
+                        suffix=".hoa",
+                        prefix=(
+                            "tempo_bench_effect_"
+                            f"{effect_str.replace(' ', '_').replace('X', '')}_"
+                        ),
+                    )
+                    os.close(temp_fd)  # Close the file descriptor
 
-        # Second pass: trace through each effect's HOA to find required inputs
-        for effect_str, hoa_path in effect_hoa_files.items():
-            required_inputs = trace_through_hoa(hoa_path, trace_str, effect_str)
-            effect_inputs[effect_str] = required_inputs
+                    # Write HOA content to temp file
+                    with open(temp_path, "w") as temp_file:
+                        temp_file.write(result.to_str())
 
-        # Write log
-        with open(log_file, "w") as f:
-            f.write(log_str)
-            f.write("\n--- Required Inputs Analysis ---\n")
-            for effect_str, inputs in effect_inputs.items():
-                f.write(f"\nFor effect {effect_str}:\n")
-                for time_step, conditions in inputs.items():
-                    f.write(f"  Time {time_step}: {conditions}\n")
+                    effect_hoa_files[effect_str] = temp_path
+                    logger.info(f"Saved HOA for {effect_str} to {temp_path}")
 
-        with open(output_file, "w") as f:
-            json.dump(effect_inputs, f, indent=4)
+            # Second pass: trace through each effect's HOA to find required inputs
+            for effect_str, hoa_path in effect_hoa_files.items():
+                required_inputs = trace_through_hoa(hoa_path, trace_str, effect_str)
+                effect_inputs[effect_str] = required_inputs
 
-        return effect_inputs
+            # Write log
+            with open(log_file, "w") as f:
+                f.write(log_str)
+                f.write("\n--- Required Inputs Analysis ---\n")
+                for effect_str, inputs in effect_inputs.items():
+                    f.write(f"\nFor effect {effect_str}:\n")
+                    for time_step, conditions in inputs.items():
+                        f.write(f"  Time {time_step}: {conditions}\n")
 
-    finally:
-        # Clean up temporary files
-        for temp_path in effect_hoa_files.values():
-            try:
-                os.unlink(temp_path)
-            except OSError as e:
-                logging.warning(f"Could not delete temp file {temp_path}: {e}")
+            with open(output_file, "w") as f:
+                json.dump(effect_inputs, f, indent=4)
+            return_obj = effect_inputs
+
+        except Exception as e:
+            return_obj = (e.__class__.__name__, str(e))
+
+        with os.fdopen(w, "wb") as wf:
+            pickle.dump(return_obj, wf)
+        os._exit(0)
+
+    else:  # in the parent
+        os.close(w)
+        start = time.time()
+        while True:
+            pid_done, _ = os.waitpid(pid, os.WNOHANG)
+            if pid_done == pid:
+                # child is done, get res
+                with os.fdopen(r, "rb") as rf:
+                    try:
+                        result = pickle.load(rf)
+                    except EOFError:
+                        raise RuntimeError("Child exited without writing result")
+                if (
+                    isinstance(result, tuple)
+                    and len(result) == 2
+                    and result[0].endswith("Error")
+                ):
+                    raise RuntimeError(f"Child error: {result}")
+                return result
+            if time.time() - start > timeout:
+                os.kill(pid, signal.SIGKILL)
+                os.waitpid(pid, 0)
+                raise TimeoutError(f"synthesize timed out after {timeout}")
+            time.sleep(0.1)
 
 
 def pipeline(tlsf_file: str, config_file: str, num_run: int = 0, timeout: int = 300):
