@@ -457,7 +457,7 @@ def check_causality(
                 logging.warning(f"Could not delete temp file {temp_path}: {e}")
 
 
-def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
+def pipeline(tlsf_file: str, config_file: str, num_run: int = 0, timeout: int = 300):
     tlsf_path = Path(tlsf_file)
     base = tlsf_path.stem + "_" + str(num_run)
 
@@ -483,7 +483,7 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
         aps = extract_hoa_aps(hoa_file.read_text())
 
         logger.info(f"[+] Running hoax on {hoa_file}")
-        hoax = run_hoax(hoa_file, hoax_file, Path(config_file), aps)
+        hoax = run_hoax(hoa_file, hoax_file, Path(config_file), aps, timeout)
 
         logger.info("[+] Generating trace")
         trace = generate_trace(hoax_file, aps)
@@ -493,7 +493,7 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
         run_autfilt_stats(hoa_file, stats_file)
 
         logger.info("[+] Checking acceptance")
-        accepted = run_autfilt_accept(hoa_file, trace, accepted_file)
+        accepted = run_autfilt_accept(hoa_file, trace, accepted_file, timeout)
 
         with open(acceptance_log_file, "w") as f:
             f.write("Pass.\n" if accepted else "Did not pass.\n")
@@ -506,7 +506,7 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0):
 
         logger.info("[+] Generate causal traces")
         causality = check_causality(
-            effects_arr, trace, hoa_file, causal_file, corp_log_file
+            effects_arr, trace, hoa_file, causal_file, corp_log_file, timeout
         )
 
     except subprocess.TimeoutExpired:
