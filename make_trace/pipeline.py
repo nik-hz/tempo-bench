@@ -19,6 +19,7 @@ import subprocess
 import sys
 import tempfile
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
+from datetime import datetime
 from pathlib import Path
 
 import spot
@@ -64,13 +65,18 @@ def run_hoax(
     """Run hoax with config, clean its output, and save result."""
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
 
-    res = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        check=True,
-    )
+    try:
+        res = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=True,
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning(f"Hoax timed out after {timeout}s on {hoa_file}")
+        raise
+        # return None
 
     # Drop last line (like `sed '$d'`)
     lines = res.stdout.strip().splitlines()[:-1]
@@ -127,7 +133,9 @@ def extract_outputs(tlsf_file: Path, outputs_file: Path):
     cmd = ["syfco", tlsf_file, "-outs"]
     res = subprocess.run(cmd, capture_output=True)
 
-    output_params = res.stdout.decode("utf-8").strip().split(",")
+    # NOTE: This fixes a bug where leading whitespaces caused effects to not be found
+    output_params = [o.strip() for o in res.stdout.decode("utf-8").split(",")]
+
     outputs_file.write_text(res.stdout.decode("utf-8"))
 
     return output_params
@@ -407,7 +415,7 @@ def check_causality(
                 result = synthesis_helper(system, trace, effect, timeout=timeout)
             except TimeoutError:
                 logger.warning(f"Synthesize timed out after {timeout}s")
-                continue
+                break  # unlikely to be able to solve harder effects
             # result = cause.synthesize(system, trace, effect, False, False)
 
             if result.is_empty():
@@ -462,7 +470,8 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0, timeout: int = 
     base = tlsf_path.stem + "_" + str(num_run)
 
     # Create results/<specname> directory
-    results_dir = Path("results") / base
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    results_dir = Path("results") / f"results_{ts}" / base
     results_dir.mkdir(parents=True, exist_ok=True)
 
     hoa_file = results_dir / "01-system.hoa"
@@ -511,7 +520,8 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0, timeout: int = 
 
     except subprocess.TimeoutExpired:
         logger.exception("Timeout running")
-        return {"status": "timeout"}
+        # return {"status": "timeout"}
+        raise
     except Exception:
         logger.exception("Pipeline failed")
         raise
