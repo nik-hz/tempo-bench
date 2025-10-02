@@ -67,6 +67,10 @@ def process_tlsf(args):
             queue.put({"file": tlsf_file, "result": None, "error": "Cancelled"})
             return
         result = pipeline(tlsf_file, config_file, num_run, timeout)
+        if "error" in result:
+            cancel_event.set()
+            queue.put({"file": tlsf_file, "result": None, "error": result["error"]})
+
         queue.put({"file": tlsf_file, "result": result, "error": None})
     except Exception as e:
         cancel_event.set()  # tell siblings to stop

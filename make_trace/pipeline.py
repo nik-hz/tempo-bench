@@ -552,12 +552,14 @@ def pipeline(tlsf_file: str, config_file: str, num_run: int = 0, timeout: int = 
         )
 
     except subprocess.TimeoutExpired:
-        logger.exception("Timeout running")
-        # return {"status": "timeout"}
-        raise
-    except Exception:
-        logger.exception("Pipeline failed")
-        raise
+        logger.warning("Timeout running synthesis (subprocess)")
+        return {"error": "subprocess_timeout"}
+    except TimeoutError as e:
+        logger.warning(f"Timeout in check_causality: {e}")
+        return {"error": "causality_timeout"}
+    except Exception as e:
+        logger.error(f"Pipeline failed: {e}")
+        return {"error": f"pipeline_failed: {e}"}
 
     return {
         "hoa": hoa_file.read_text(),
