@@ -75,6 +75,25 @@ class TempoBench_Dataset(Dataset):
         )
         return prompt
 
+    def construct_causality_label(self, result: dict) -> str:
+        """Construct a descriptive causality label with both NL explanation and the raw
+        JSON causality mapping."""
+        trace = result["trace"]
+        causality = result["causality"]
+
+        nl_parts = [f"Trace: {trace}\n"]
+        nl_parts.append("Causal explanations:")
+
+        for effect, steps in causality.items():
+            nl_parts.append(f"- Effect: {effect}")
+            for step, constraints in steps.items():
+                constraints_str = "; ".join(constraints)
+                nl_parts.append(f"  At step {step}: {constraints_str}")
+
+        nl_text = "\n".join(nl_parts)
+
+        return f"{nl_text}\n\nRaw JSON:\n{json.dumps(causality, indent=2)}"
+
     def __len__(self):
         return len(self.data)
 
@@ -113,7 +132,8 @@ class TempoBench_Dataset(Dataset):
                 f"Effects to analyze: {result['effects']}\n\n"
                 f"Explain the causal constraints that make each effect true."
             )
-            label = json.dumps(result["causality"])
+            label = self.construct_causality_label(result)
+            # label = json.dumps(result["causality"])
             return prompt, label
 
 
