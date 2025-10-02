@@ -18,6 +18,7 @@ import re
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from pathlib import Path
 
 import spot
@@ -35,11 +36,17 @@ os.environ["LD_LIBRARY_PATH"] = "/usr/local/lib:" + os.environ.get(
 )
 
 
-def run_ltlsynt(tlsf_file: Path, hoa_file: Path):
+def run_ltlsynt(tlsf_file: Path, hoa_file: Path, timeout: int = 300):
     """Run ltlsynt on a TLSF file, strip the first line, and save HOA."""
     cmd = ["ltlsynt", "--tlsf", str(tlsf_file)]
     logging.debug(f"Running command: {' '.join(cmd)}")
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    res = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=True,
+    )
     # Drop first line
     lines = res.stdout.splitlines()[1:]
     hoa_file.write_text("\n".join(lines))
@@ -51,11 +58,19 @@ def make_replacement(aps):
     return "{" + ", ".join(parts) + "}"
 
 
-def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
+def run_hoax(
+    hoa_file: Path, hoax_file: Path, config_file: Path, aps, timeout: int = 300
+):
     """Run hoax with config, clean its output, and save result."""
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
 
-    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+    res = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        check=True,
+    )
 
     # Drop last line (like `sed '$d'`)
     lines = res.stdout.strip().splitlines()[:-1]
@@ -66,6 +81,7 @@ def run_hoax(hoa_file: Path, hoax_file: Path, config_file: Path, aps):
     content = re.sub(r"set\(\)", replacement, content)
 
     hoax_file.write_text(content)
+    return content
 
 
 def generate_trace(hoax_file: Path, aps):
@@ -94,10 +110,14 @@ def run_autfilt_stats(hoa_file: Path, stats_file: Path):
         )
 
 
-def run_autfilt_accept(hoa_file: Path, trace: str, output_file: Path):
+def run_autfilt_accept(
+    hoa_file: Path, trace: str, output_file: Path, timeout: int = 300
+):
     """Check acceptance of a trace in automaton using autfilt."""
     cmd = ["autfilt", f"--accept-word={trace}"]
-    res = subprocess.run(cmd, input=hoa_file.read_bytes(), capture_output=True)
+    res = subprocess.run(
+        cmd, input=hoa_file.read_bytes(), timeout=timeout, capture_output=True
+    )
     output_file.write_bytes(res.stdout)
     return res.returncode == 0
 
@@ -124,6 +144,7 @@ def extract_effects(
     """
 
     # NOTE there may be some better way of doing this, but it should be O(N)
+    # TODO there seems to be some bug where it is only extracting one effect type
     indexed_trace = [s.split("&") for s in trace.strip().split(";")[:-1]]
 
     effects_str = ""
@@ -345,8 +366,19 @@ def trace_through_hoa(hoa_file_path: str, trace_str: str, effect_str: str):
     return required_inputs
 
 
+def synthesis_helper(system, trace, effect, timeout=300):
+    with ThreadPoolExecutor(max_workers=1) as executor:
+        future = executor.submit(cause.synthesize, system, trace, effect, False, False)
+        return future.result(timeout=timeout)
+
+
 def check_causality(
-    effects_arr: list, trace_str: str, hoa_file: Path, output_file: Path, log_file: Path
+    effects_arr: list,
+    trace_str: str,
+    hoa_file: Path,
+    output_file: Path,
+    log_file: Path,
+    timeout: int = 300,
 ):
     """Modified to save HOA files for each effect and trace through them to find
     required inputs at each timestep."""
@@ -369,8 +401,14 @@ def check_causality(
                 "small",
                 "high",
             )
-
-            result = cause.synthesize(system, trace, effect, False, False)
+            """Multithreaded iplementatio of synthesis for timtout catching."""
+            # NOTE: some multithreading here
+            try:
+                result = synthesis_helper(system, trace, effect, timeout=timeout)
+            except TimeoutError:
+                logger.warning(f"Synthesize timed out after {timeout}s")
+                continue
+            # result = cause.synthesize(system, trace, effect, False, False)
 
             if result.is_empty():
                 log_str += f"No cause found for {effect_str}\n"
@@ -419,9 +457,9 @@ def check_causality(
                 logging.warning(f"Could not delete temp file {temp_path}: {e}")
 
 
-def pipeline(tlsf_file: str, config_file: str):
+def pipeline(tlsf_file: str, config_file: str, num_run: int = 0, timeout: int = 300):
     tlsf_path = Path(tlsf_file)
-    base = tlsf_path.stem
+    base = tlsf_path.stem + "_" + str(num_run)
 
     # Create results/<specname> directory
     results_dir = Path("results") / base
@@ -445,7 +483,7 @@ def pipeline(tlsf_file: str, config_file: str):
         aps = extract_hoa_aps(hoa_file.read_text())
 
         logger.info(f"[+] Running hoax on {hoa_file}")
-        run_hoax(hoa_file, hoax_file, Path(config_file), aps)
+        hoax = run_hoax(hoa_file, hoax_file, Path(config_file), aps, timeout)
 
         logger.info("[+] Generating trace")
         trace = generate_trace(hoax_file, aps)
@@ -455,7 +493,7 @@ def pipeline(tlsf_file: str, config_file: str):
         run_autfilt_stats(hoa_file, stats_file)
 
         logger.info("[+] Checking acceptance")
-        accepted = run_autfilt_accept(hoa_file, trace, accepted_file)
+        accepted = run_autfilt_accept(hoa_file, trace, accepted_file, timeout)
 
         with open(acceptance_log_file, "w") as f:
             f.write("Pass.\n" if accepted else "Did not pass.\n")
@@ -468,9 +506,12 @@ def pipeline(tlsf_file: str, config_file: str):
 
         logger.info("[+] Generate causal traces")
         causality = check_causality(
-            effects_arr, trace, hoa_file, causal_file, corp_log_file
+            effects_arr, trace, hoa_file, causal_file, corp_log_file, timeout
         )
 
+    except subprocess.TimeoutExpired:
+        logger.exception("Timeout running")
+        return {"status": "timeout"}
     except Exception:
         logger.exception("Pipeline failed")
         raise
@@ -479,6 +520,7 @@ def pipeline(tlsf_file: str, config_file: str):
         "hoa": hoa_file.read_text(),
         "aps": aps,
         "trace": trace,
+        "hoax": hoax,
         "accepted": accepted,
         "effects": effects_arr,
         "causality": causality,  # Now returns the effect_inputs dictionary

@@ -1,0 +1,130 @@
+import ast
+import json
+import re
+
+# import torch
+from torch.utils.data import Dataset
+
+# from pathlib import Path
+
+
+def replace_indices_with_APs(line: str, aps: list[str]) -> str:
+    """Replace only AP indices inside [...] with their AP names.
+
+    Leaves state numbers outside the brackets unchanged.
+    """
+
+    def repl(match):
+        idx = int(match.group(0))
+        if 0 <= idx < len(aps):
+            return aps[idx]
+        return match.group(0)  # leave as is if not a valid AP index
+
+    # process only the [...] section
+    return re.sub(
+        r"\[(.*?)\]", lambda m: "[" + re.sub(r"\b\d+\b", repl, m.group(1)) + "]", line
+    )
+
+
+class TempoBench_Dataset(Dataset):
+    def __init__(self, path, tokenizer=None, task="trace_acceptance"):
+        self.data = []
+        self.task = task
+        self.tokenizer = tokenizer
+
+        with open(path, "r") as f:
+            for line in f:
+                item = json.loads(line)
+                if item.get("error") is None:  # skip failed runs
+                    self.data.append(item)
+
+    def construct_acceptance_trace(self, result: dict):
+        """Read in hoax and hoa to construct a NL version of the trace.
+
+        hoax: "0: (0, {'s_0'}, 3)\n0: (3, {'g_1', 's_1'}, 12)\n..."
+        hoa:  full HOA string
+        """
+        # hoa = result["hoa"]
+        aps = result["aps"]
+        hoax = result["hoax"]
+
+        # TODO extract the state rules for each state from the hoa
+        nl_transitions = []
+        for line in hoax.strip().split("\n"):
+            _, tup_str = line.split(":", 1)
+            start, inputs, nxt = ast.literal_eval(tup_str.strip())
+            inputs_list = sorted(list(inputs))  # stable order
+            inputs_list_named = [
+                aps[int(ap.split("_")[-1])] if ap.isdigit() else ap
+                for ap in inputs_list
+            ]
+            if inputs_list_named:
+                inputs_str = " and ".join(inputs_list)
+            else:
+                inputs_str = "no inputs"
+            nl_transitions.append(
+                f"From state {start}, "
+                f"on inputs {inputs_str}, "
+                f"the automaton moves to state {nxt}."
+            )
+
+        prompt = (
+            "These are the corresponding state transitions to the automaton:\n\n"
+            + "\n".join(nl_transitions)
+        )
+        return prompt
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        result = self.data[idx]["result"]
+
+        if self.task == "trace_acceptance":
+            aps = result["aps"]
+            hoa_pretty = "\n".join(
+                replace_indices_with_APs(line, aps)
+                for line in result["hoa"].splitlines()
+            )
+            prompt = (
+                f"You are given an automaton (HOA format) with APs {result['aps']}.\n\n"
+                f"Automaton:\n{hoa_pretty}\n\n"
+                f"Trace:\n{result['trace']}\n\n"
+                f"Question: Does the automaton accept this trace? "
+                "Solve this by stepping trough the state machine."
+            )
+            label = (
+                f"{self.construct_acceptance_trace(result=result)}\n\n"
+                f"{"Accepted: Yes" if result["accepted"] else "Accepted: No"}"
+            )
+
+            if self.tokenizer:
+                inputs = self.tokenizer(
+                    prompt, return_tensors="pt", padding=True, truncation=True
+                )
+                labels = self.tokenizer(label, return_tensors="pt")["input_ids"]
+                return inputs, labels
+            return prompt, label
+
+        elif self.task == "causality":
+            prompt = (
+                f"Trace:\n{result['trace']}\n\n"
+                f"Effects to analyze: {result['effects']}\n\n"
+                f"Explain the causal constraints that make each effect true."
+            )
+            label = json.dumps(result["causality"])
+            return prompt, label
+
+
+if __name__ == "__main__":
+    print("[ ] Testing TempoBench Dataset builder")
+
+    # Use a small JSONL file (maybe 1–2 lines from your sample)
+    path = "sample.jsonl"  # adjust to your file
+    ds = TempoBench_Dataset(path, tokenizer=None, task="trace_acceptance")
+
+    print(f"Loaded {len(ds)} items")
+    print("--- First item ---")
+    prompt, label = ds[0]
+    print("Prompt:\n", prompt)  # truncate for readability
+    print("Label:", label)
