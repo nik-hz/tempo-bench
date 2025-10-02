@@ -4,10 +4,13 @@
 This module provides a command-line interface for the complete pipeline:
 TLSF -> Automata -> Trace -> Causality -> Reasoning
 """
+import atexit
+import glob
 import json
 import logging
 import os
 import sys
+import tempfile
 from datetime import datetime
 from multiprocessing import Manager, Pool, Process, cpu_count
 from pathlib import Path
@@ -15,6 +18,18 @@ from pathlib import Path
 from tqdm import tqdm
 
 from .pipeline import pipeline
+
+
+def cleanup_tempfiles():
+    tmpdir = tempfile.gettempdir()
+    for tf in glob.glob(os.path.join(tmpdir, "tempo_bench_effect_*.hoa")):
+        try:
+            os.unlink(tf)
+        except OSError as e:
+            logging.warning(f"Could not delete temp file {tf}: {e}")
+
+
+atexit.register(cleanup_tempfiles)
 
 
 def set_logging_level(level=logging.WARNING):
@@ -100,30 +115,42 @@ def run_parallel(
     writer = Process(target=writer_process, args=(queue, output_file))
     writer.start()
 
-    with Pool(n_jobs) as pool:
-        for _ in tqdm(
-            pool.imap_unordered(
-                process_tlsf,
-                [
-                    (num_run, f, config_file, timeout, queue, quiet, cancel_map[f])
-                    for f in tlsf_files
-                    for num_run in range(num_runs)
-                ],
-            ),
-            total=len(tlsf_files) * num_runs,
-            desc="Processing TLSF files",
-        ):
-            pass
-
-    queue.put("DONE")
-    writer.join()
+    try:
+        with Pool(n_jobs) as pool:
+            for _ in tqdm(
+                pool.imap_unordered(
+                    process_tlsf,
+                    [
+                        (num_run, f, config_file, timeout, queue, quiet, cancel_map[f])
+                        for f in tlsf_files
+                        for num_run in range(num_runs)
+                    ],
+                ),
+                total=len(tlsf_files) * num_runs,
+                desc="Processing TLSF files",
+            ):
+                pass
+    except KeyboardInterrupt:
+        print("\n[!] Caught Ctrl-C, terminating workers...")
+        pool.terminate()
+        pool.join()
+        queue.put("DONE")
+        writer.terminate()
+        writer.join()
+        raise
+    else:
+        queue.put("DONE")
+        writer.join()
 
 
 if __name__ == "__main__":
+    # cleans up tempfiles
+    atexit.register(cleanup_tempfiles)
+
     if len(sys.argv) < 2 or sys.argv[1] == "-h" or sys.argv[1] not in ["-s", "-p"]:
         print(
             "Usage: make_trace [-h] [-s <tlsf_file>] [-p <tlsf_dir>\
- <output_file> [num_runs per file] [n_jobs] [timeout]]"
+ <output_dir> [num_runs per file] [n_jobs] [timeout]]"
         )
         print(
             " \
