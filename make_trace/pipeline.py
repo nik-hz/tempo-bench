@@ -133,7 +133,9 @@ def extract_outputs(tlsf_file: Path, outputs_file: Path):
     cmd = ["syfco", tlsf_file, "-outs"]
     res = subprocess.run(cmd, capture_output=True)
 
-    output_params = res.stdout.decode("utf-8").strip().split(",")
+    # output_params = res.stdout.decode("utf-8").strip().split(",")
+    output_params = [o.strip() for o in res.stdout.decode("utf-8").split(",")]
+
     outputs_file.write_text(res.stdout.decode("utf-8"))
 
     return output_params
