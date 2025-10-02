@@ -64,13 +64,18 @@ def run_hoax(
     """Run hoax with config, clean its output, and save result."""
     cmd = ["hoax", str(hoa_file), "--config", str(config_file)]
 
-    res = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-        check=True,
-    )
+    try:
+        res = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            check=True,
+        )
+    except subprocess.TimeoutExpired:
+        logger.warning(f"Hoax timed out after {timeout}s on {hoa_file}")
+        raise
+        # return None
 
     # Drop last line (like `sed '$d'`)
     lines = res.stdout.strip().splitlines()[:-1]
