@@ -72,7 +72,7 @@ class TempoBench_Dataset(Dataset):
         prompt = (
             "These are the corresponding state transitions to the automaton:\n\n"
             + "\n".join(nl_transitions)
-            + f"{json.dumps(hoax, indent=2)}"
+            + f"\n\n{hoax}"
         )
         return prompt
 
@@ -80,19 +80,19 @@ class TempoBench_Dataset(Dataset):
         """Construct a descriptive causality label with both NL explanation and the raw
         JSON causality mapping."""
         trace = result["trace"]
+        effect = result["effects"][0]
         causality = result["causality"]
 
-        nl_parts = [f"Trace: {trace}\n"]
-        nl_parts.append("Causal explanations:")
+        # Count Xs in the effect name → max steps to show
+        num_x = effect.count("X")
+        max_steps = num_x + 1  # include step 0..num_x
 
-        for effect, steps in causality.items():
-            nl_parts.append(f"- Effect: {effect}")
-            for step, constraints in steps.items():
-                constraints_str = "; ".join(constraints)
-                nl_parts.append(f"  At step {step}: {constraints_str}")
-
-        nl_text = "\n".join(nl_parts)
-
+        nl_text = (
+            "Causal explanations:\n"
+            f"Effect: {effect} (showing first {max_steps} steps of trace)\n"
+            "The relevant portion of the trace is:"
+            + ";".join(trace.split(";")[0:max_steps])
+        )
         return f"{nl_text}\n\nRaw JSON:\n{json.dumps(causality, indent=2)}"
 
     def __len__(self):
@@ -100,13 +100,12 @@ class TempoBench_Dataset(Dataset):
 
     def __getitem__(self, idx):
         result = self.data[idx]["result"]
+        aps = result["aps"]
+        hoa_pretty = "\n".join(
+            replace_indices_with_APs(line, aps) for line in result["hoa"].splitlines()
+        )
 
         if self.task == "trace_acceptance":
-            aps = result["aps"]
-            hoa_pretty = "\n".join(
-                replace_indices_with_APs(line, aps)
-                for line in result["hoa"].splitlines()
-            )
             prompt = (
                 f"You are given an automaton (HOA format) with APs {result['aps']}.\n\n"
                 f"Automaton:\n{hoa_pretty}\n\n"
@@ -128,13 +127,28 @@ class TempoBench_Dataset(Dataset):
             return prompt, label
 
         elif self.task == "causality":
+            """
+            NOTE: Will's NL description of the task it is a credit assignment task over
+            time the goal is to identify over time the minimumn set of inputs that were
+            given which caused the effect that is given. Specifically your goal is to
+            find the minimumn set of inputs over time such that if one did not occur
+            the output observed would also not occur.
+            """
             prompt = (
+                "This is a credit assignment task over time.\n"
+                "Your goal is to identify the minimal set of inputs "
+                "that caused a given effect in the automaton. "
+                "If any one of these inputs were missing, the effect "
+                "would not have occurred.\n\n"
+                f"You are given an automaton (HOA format) with APs:\n"
+                f"{result['aps']}\n\n"
+                f"Automaton:\n{hoa_pretty}\n\n"
                 f"Trace:\n{result['trace']}\n\n"
-                f"Effects to analyze: {result['effects']}\n\n"
-                f"Explain the causal constraints that make each effect true."
+                f"Effects to analyze:\n{result['effects']}\n\n"
+                "Explain the causal constraints step by step.\n"
             )
+
             label = self.construct_causality_label(result)
-            # label = json.dumps(result["causality"])
             return prompt, label
 
 
@@ -142,7 +156,7 @@ if __name__ == "__main__":
     print("[ ] Testing TempoBench Dataset builder")
 
     # Use a small JSONL file (maybe 1–2 lines from your sample)
-    path = "sample.jsonl"  # adjust to your file
+    path = "/workspaces/tempo-bench/dataset/sample.jsonl"  # adjust to your file
 
     if sys.argv[1] == "-t":
         ds = TempoBench_Dataset(path, tokenizer=None, task="trace_acceptance")
@@ -151,7 +165,7 @@ if __name__ == "__main__":
         print("--- First item ---")
         prompt, label = ds[0]
         print("Prompt:\n", prompt)  # truncate for readability
-        print("Label:", label)
+        print("Label:\n", label)
 
     elif sys.argv[1] == "-c":
         ds = TempoBench_Dataset(path, tokenizer=None, task="causality")
