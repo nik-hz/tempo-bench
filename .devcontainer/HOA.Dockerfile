@@ -41,7 +41,7 @@ FROM python:3.12.3-bookworm
 
 # Base tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    mona graphviz ca-certificates zsh curl git gnupg tmux vim\
+    mona graphviz ca-certificates zsh curl git gnupg tmux vim xclip\
     && rm -rf /var/lib/apt/lists/*
 
 
