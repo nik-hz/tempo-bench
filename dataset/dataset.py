@@ -39,11 +39,13 @@ class TempoBench_Dataset(Dataset):
                 if item.get("error") is None:  # skip failed runs
                     self.data.append(item)
 
-    def construct_acceptance_trace(self, result: dict):
+    def construct_acceptance_trace(self, result: dict, hoax_idx: int = -1):
         """Read in hoax and hoa to construct a NL version of the trace.
 
         hoax: "0: (0, {'s_0'}, 3)\n0: (3, {'g_1', 's_1'}, 12)\n..."
         hoa:  full HOA string
+
+        also returns a json object of the hoax for exact labeling
         """
         # hoa = result["hoa"]
         aps = result["aps"]
@@ -51,7 +53,8 @@ class TempoBench_Dataset(Dataset):
 
         # TODO extract the state rules for each state from the hoa
         nl_transitions = []
-        for line in hoax.strip().split("\n"):
+        json_transitions = {}
+        for i, line in enumerate(hoax.strip().split("\n")):
             _, tup_str = line.split(":", 1)
             start, inputs, nxt = ast.literal_eval(tup_str.strip())
             inputs_list = sorted(list(inputs))  # stable order
@@ -63,18 +66,32 @@ class TempoBench_Dataset(Dataset):
                 inputs_str = " and ".join(inputs_list)
             else:
                 inputs_str = "no inputs"
+
+            # NL prompt
             nl_transitions.append(
                 f"From state {start}, "
                 f"on inputs {inputs_str}, "
                 f"the automaton moves to state {nxt}."
             )
+            # JSON prompt
+            json_transitions[f"step_{i}"] = {
+                "current state": start,
+                "defining inputs": inputs_str,
+                "next state": nxt,
+            }
+            if hoax_idx > 0 and i >= hoax_idx:
+                break
 
         prompt = (
             "These are the corresponding state transitions to the automaton:\n\n"
             + "\n".join(nl_transitions)
-            + f"\n\n{hoax}"
         )
-        return prompt
+        json_gt = (
+            "\n\n### JSON Ground Truth ###\n"
+            + f"{json.dumps(json_transitions, indent=4)}"
+        )
+
+        return prompt, json_gt
 
     def construct_causality_label(self, result: dict) -> str:
         """Construct a descriptive causality label with both NL explanation and the raw
@@ -82,18 +99,25 @@ class TempoBench_Dataset(Dataset):
         trace = result["trace"]
         effect = result["effects"][0]
         causality = result["causality"]
+        # hoax = result["hoax"]
 
         # Count Xs in the effect name → max steps to show
         num_x = effect.count("X")
         max_steps = num_x + 1  # include step 0..num_x
 
+        # edge case, cycle{1} is in first step, should never happen though
+        trace_steps = [s for s in trace.split(";") if s and not s.startswith("cycle")]
+        truncated_trace = ";".join(trace_steps[0:max_steps])
+
         nl_text = (
             "Causal explanations:\n"
             f"Effect: {effect} (showing first {max_steps} steps of trace)\n"
-            "The relevant portion of the trace is:"
-            + ";".join(trace.split(";")[0:max_steps])
+            f"The relevant portion of the trace is: {truncated_trace}\n"
+            f"Reasoning over the transitions for the first {max_steps}: \n\n"
+            f"{self.construct_acceptance_trace(result, num_x)[0]}"
+            f"\n\n### JSON Ground Truth ###:\n{json.dumps(causality, indent=2)}"
         )
-        return f"{nl_text}\n\nRaw JSON:\n{json.dumps(causality, indent=2)}"
+        return nl_text
 
     def __len__(self):
         return len(self.data)
@@ -107,6 +131,11 @@ class TempoBench_Dataset(Dataset):
 
         if self.task == "trace_acceptance":
             prompt = (
+                "This is task that requires you to trace through a state machine.\n"
+                "You must step through state by state, compare the inputs with "
+                "all accepted inputs at each state, determine the transition and then "
+                "after consuming the whole state, determine if this trace will be "
+                "accepted by the state machine.\n\n"
                 f"You are given an automaton (HOA format) with APs {result['aps']}.\n\n"
                 f"Automaton:\n{hoa_pretty}\n\n"
                 f"Trace:\n{result['trace']}\n\n"
@@ -114,7 +143,8 @@ class TempoBench_Dataset(Dataset):
                 "Solve this by stepping trough the state machine."
             )
             label = (
-                f"{self.construct_acceptance_trace(result=result)}\n\n"
+                f"{self.construct_acceptance_trace(result=result)[0]}\n"
+                f"{self.construct_acceptance_trace(result=result)[1]}\n\n"
                 f"{"Accepted: Yes" if result["accepted"] else "Accepted: No"}"
             )
 
@@ -123,7 +153,8 @@ class TempoBench_Dataset(Dataset):
                     prompt, return_tensors="pt", padding=True, truncation=True
                 )
                 labels = self.tokenizer(label, return_tensors="pt")["input_ids"]
-                return inputs, labels
+                return {"inputs": inputs, "labels": labels}
+
             return prompt, label
 
         elif self.task == "causality":
@@ -156,7 +187,7 @@ if __name__ == "__main__":
     print("[ ] Testing TempoBench Dataset builder")
 
     # Use a small JSONL file (maybe 1–2 lines from your sample)
-    path = "/workspaces/tempo-bench/dataset/sample.jsonl"  # adjust to your file
+    path = "/workspaces/tempo-bench/dataset/sample.jsonl"
 
     if sys.argv[1] == "-t":
         ds = TempoBench_Dataset(path, tokenizer=None, task="trace_acceptance")

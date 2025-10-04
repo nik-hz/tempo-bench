@@ -1,6 +1,9 @@
 {
     "name": "tempo-bench",
     "image": "nik101010/tempo-rl:latest",
+    "remoteEnv": {
+        "OPENROUTER_API_KEY": "${localEnv:OPENROUTER_API_KEY}"
+    },
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "mounts": [
         "source=${localWorkspaceFolder}/tlsf_specs,target=/specs,type=bind",
@@ -56,5 +59,11 @@
         }
     },
     "overrideCommand": true,
-    "postCreateCommand": "pre-commit install && git clone https://github.com/nik-hz/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && ./install.sh"
+    "postCreateCommand": "pre-commit install && git clone https://github.com/nik-hz/dotfiles.git ~/.dotfiles && cd ~/.dotfiles && ./install.sh",
+    "portsAttributes": {
+        "6006": {
+            "label": "TensorBoard",
+            "onAutoForward": "openPreview"
+        }
+    }
 }

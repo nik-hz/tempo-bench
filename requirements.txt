@@ -50,3 +50,5 @@ platformdirs==4.4.0
 pre_commit==4.3.0
 pycodestyle==2.14
 tqdm==4.67.1
+openai==2.1.0
+tensorboard==2.20.0
