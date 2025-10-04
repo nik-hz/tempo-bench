@@ -1,9 +1,6 @@
 {
     "name": "tempo-bench",
     "image": "nik101010/tempo-rl:latest",
-    "remoteEnv": {
-        "OPENROUTER_API_KEY": "${localEnv:OPENROUTER_API_KEY}"
-    },
     "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
     "mounts": [
         "source=${localWorkspaceFolder}/tlsf_specs,target=/specs,type=bind",
@@ -13,7 +10,9 @@
         "ghcr.io/devcontainers/features/github-cli:1": {}
     },
     "runArgs": [
-        "--network=host"
+        "--network=host",
+        "--env-file",
+        ".devcontainer/.env"
     ],
     "customizations": {
         "vscode": {

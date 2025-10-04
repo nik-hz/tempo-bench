@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
-from dataset import TempoBench_Dataset
+from dataset.dataset import TempoBench_Dataset
 
 # NOTE You should set model prices here from OpenRouter docs (per 1M tokens)
 MODEL_PRICES = {
@@ -153,8 +153,10 @@ class BenchmarkRunner:
 
 # tensorboard --logdir runs/tempo_bench --host 0.0.0.0 --port 6006
 if __name__ == "__main__":
+    # run with
+    # python -m benchmark.benchmark
     runner = BenchmarkRunner(
-        dataset_path="/workspaces/tempo-bench/dataset/sample.jsonl",
+        dataset_path="/workspaces/tempo-bench/data/sample.jsonl",
         task="trace_acceptance",
         model_id="openai/gpt-4o-mini",
         batch_size=4,

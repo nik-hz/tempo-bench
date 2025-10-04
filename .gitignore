@@ -1,6 +1,7 @@
 .claude/
 .vscode/settings.json
 */__pycache__/
+.devcontainer/.env
 
 .DS_Store
 

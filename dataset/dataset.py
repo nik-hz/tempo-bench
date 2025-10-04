@@ -185,9 +185,7 @@ class TempoBench_Dataset(Dataset):
 
 if __name__ == "__main__":
     print("[ ] Testing TempoBench Dataset builder")
-
-    # Use a small JSONL file (maybe 1–2 lines from your sample)
-    path = "/workspaces/tempo-bench/dataset/sample.jsonl"
+    path = "/workspaces/tempo-bench/data/sample.jsonl"
 
     if sys.argv[1] == "-t":
         ds = TempoBench_Dataset(path, tokenizer=None, task="trace_acceptance")
